@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+gcc -std=c11 -Wall -Wextra -Wpedantic -g -o tinyc src/main.c src/lexer.c
+
+./tinyc "$@"
