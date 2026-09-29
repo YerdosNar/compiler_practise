@@ -32,7 +32,9 @@ char *tok_kind_name(TokenKind tk)
                 case TOK_NOT:           return "TOK_NOT";
                 case TOK_NE:            return "TOK_NE";
                 case TOK_PLUS:          return "TOK_PLUS";
+                case TOK_INCREMENT:     return "TOK_INCREMENT";
                 case TOK_MINUS:         return "TOK_MINUS";
+                case TOK_DECREMENT:     return "TOK_DECREMENT";
                 case TOK_STAR:          return "TOK_STAR";
                 case TOK_SLASH:         return "TOK_SLASH";
                 case TOK_COMMENT_ML:    return "TOK_COMMENT_ML";

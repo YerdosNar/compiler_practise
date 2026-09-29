@@ -307,8 +307,6 @@ Token lexer_next(Lexer *lx) {
                 case '"': return handle_string_token(lx);
                 case '_': return handle_identifier_token(lx);
                 case '/': return handle_slash_token(lx);
-                case '+': return single_token(lx, TOK_PLUS);
-                case '-': return single_token(lx, TOK_MINUS);
                 case '*': return single_token(lx, TOK_STAR);
                 case '%': return single_token(lx, TOK_MODULO);
                 case '(': return single_token(lx, TOK_LPAREN);
@@ -319,6 +317,8 @@ Token lexer_next(Lexer *lx) {
                 case '}': return single_token(lx, TOK_RCURLY);
                 case ',': return single_token(lx, TOK_COMMA);
                 case ';': return single_token(lx, TOK_SEMICOLON);
+                case '+': return multi_token(lx, '+', TOK_PLUS, TOK_INCREMENT);
+                case '-': return multi_token(lx, '-', TOK_MINUS, TOK_DECREMENT);
                 case '<': return multi_token(lx, '=', TOK_LT, TOK_LE);
                 case '>': return multi_token(lx, '=', TOK_GT, TOK_GE);
                 case '!': return multi_token(lx, '=', TOK_NOT, TOK_NE);
