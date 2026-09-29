@@ -5,39 +5,39 @@
 void print_token(Token t) {
         switch (t.tok_kind) {
         case TOK_EOF:
-                printf("EOF\n");
+                printf("EOF: %.*s\n", (int)t.length, t.start);
                 printf("LINE: %u, COL: %u\n", t.line, t.col);
                 break;
         case TOK_NUMBER:
-                printf("NUMBER\n");
+                printf("NUMBER: %.*s\n", (int)t.length, t.start);
                 printf("LINE: %u, COL: %u\n", t.line, t.col);
                 break;
         case TOK_LPAREN:
-                printf("LPAREN\n");
+                printf("LPAREN: %.*s\n", (int)t.length, t.start);
                 printf("LINE: %u, COL: %u\n", t.line, t.col);
                 break;
         case TOK_RPAREN:
-                printf("RPAREN\n");
+                printf("RPAREN: %.*s\n", (int)t.length, t.start);
                 printf("LINE: %u, COL: %u\n", t.line, t.col);
                 break;
         case TOK_PLUS:
-                printf("PLUS\n");
+                printf("PLUS: %.*s\n", (int)t.length, t.start);
                 printf("LINE: %u, COL: %u\n", t.line, t.col);
                 break;
         case TOK_MINUS:
-                printf("MINUS\n");
+                printf("MINUS: %.*s\n", (int)t.length, t.start);
                 printf("LINE: %u, COL: %u\n", t.line, t.col);
                 break;
         case TOK_SLASH:
-                printf("SLASH\n");
+                printf("SLASH: %.*s\n", (int)t.length, t.start);
                 printf("LINE: %u, COL: %u\n", t.line, t.col);
                 break;
         case TOK_STAR:
-                printf("STAR\n");
+                printf("STAR: %.*s\n", (int)t.length, t.start);
                 printf("LINE: %u, COL: %u\n", t.line, t.col);
                 break;
         default:
-                printf("Not supported\n");
+                printf("Not supported: %.*s\n", (int)t.length, t.start);
                 printf("LINE: %u, COL: %u\n", t.line, t.col);
                 break;
         }

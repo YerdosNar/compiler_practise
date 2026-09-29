@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define ZERO 48
+#define NINE 57
+
 void lexer_init(Lexer *lx, const char *source) {
         lx->line = 1;
         lx->col = 1;
@@ -36,12 +39,26 @@ Token lexer_next(Lexer *lx) {
                 c = peek(lx);
         }
 
-        Token tok = {.line = lx->line, .col = lx->col, .start = lx->cur};
+        Token tok = {
+                .line = lx->line, 
+                .col = lx->col, 
+                .start = lx->cur
+        };
 
         if (c == '\0') {
                 tok.tok_kind = TOK_EOF;
                 tok.length = 0;
                 return tok;
+        }
+
+        while (c >= ZERO && c <= NINE) {
+                advance(lx);
+                c = peek(lx);
+                if (c < ZERO || c > NINE) {
+                        tok.tok_kind = TOK_NUMBER;
+                        tok.length = lx->cur - tok.start;
+                        return tok;
+                }
         }
 
         switch (c) {

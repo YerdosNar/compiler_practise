@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
-gcc -std=c11 -Wall -Wextra -Wpedantic -g -o tinyc src/main.c src/lexer.c
+set -x
+
+main_file="src/main.c"
+lex_file="src/lexer.c"
+exe_file="tinyc"
+flags="-std=c11 -Wall -Wextra -Wpedantic -Wformat -g"
+
+if [[ ! -f "$exe_file" || "$main_file" -nt "$exe_file" || "$lex_file" -nt "$exe_file" ]]; then
+        echo -e "\033[32mCOMPILING...\033[0m\n"
+        gcc "$flags" -o "$exe_file" "$main_file" "$lex_file"
+fi
 
 ./tinyc "$@"
