@@ -33,14 +33,35 @@ typedef enum {
         TOK_KW_FOR,
         TOK_KW_RETURN,
 
+        TOK_AND,
+        TOK_OR,
+        TOK_AMP, /* And bitwise op */
+
+        /* Signs */
+        TOK_ASSIGN,
+        TOK_EQ,
+        TOK_LT,
+        TOK_LE,
+        TOK_GT,
+        TOK_GE,
+        TOK_NOT,
+        TOK_NE,
         TOK_PLUS,
         TOK_MINUS,
         TOK_STAR,
         TOK_SLASH,
+        TOK_MODULO,
         TOK_LPAREN,
         TOK_RPAREN,
+        TOK_LSQUARE,
+        TOK_RSQUARE,
+        TOK_LCURLY,
+        TOK_RCURLY,
+        TOK_COMMA,
+        TOK_SEMICOLON,
 
-        TOK_SEMICOLON
+        TOK_COMMENT_SL,
+        TOK_COMMENT_ML,
 } TokenKind;
 
 typedef struct {
