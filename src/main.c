@@ -10,6 +10,7 @@ char *tok_kind_name(TokenKind tk)
                 case TOK_NUMBER:        return "TOK_NUMBER";
                 case TOK_IDENTIFIER:    return "TOK_IDENTIFIER";
                 case TOK_CHAR_LITERAL:  return "TOK_CHAR_LITERAL";
+                case TOK_STRING_LITERAL:return "TOK_STRING_LITERAL";
                 case TOK_KW_INT:        return "TOK_KW_INT";
                 case TOK_KW_CHAR:       return "TOK_KW_CHAR";
                 case TOK_KW_LONG:       return "TOK_KW_LONG";

@@ -23,6 +23,7 @@ typedef enum {
         TOK_IDENTIFIER,
 
         TOK_CHAR_LITERAL,
+        TOK_STRING_LITERAL,
 
         /* Keywords */
         TOK_KW_INT,

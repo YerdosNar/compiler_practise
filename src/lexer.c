@@ -268,17 +268,43 @@ static Token handle_char_token(Lexer *lx)
         return t;
 }
 
+static Token handle_string_token(Lexer *lx)
+{
+        Token t = {
+                .tok_kind = TOK_STRING_LITERAL,
+                .start = lx->cur,
+                .line = lx->line,
+                .col = lx->col
+        };
+        advance(lx);
+        char c = peek(lx);
+
+        while (c != '"') {
+                if (c == '\\') {
+                        advance(lx);
+                        if (peek(lx) == '\0' || peek(lx) == '\n')
+                                return char_literal_error(lx, t, "Unterminated string literal");
+                }
+                advance(lx);
+                c = peek(lx);
+                if (c == '\0' || c == '\n')
+                        return char_literal_error(lx, t, "Unterminated string literal");
+        }
+        advance(lx);
+        t.length = lx->cur - t.start;
+        return t;
+}
+
 Token lexer_next(Lexer *lx) {
         char c = skip_white_space(lx);
 
         if (isdigit((u8)c)) return handle_number_token(lx);
         if (isalpha((u8)c)) return handle_identifier_token(lx);
-        if (c == '_')       return handle_identifier_token(lx);
-        if (c == '/')       return handle_slash_token(lx);
 
         switch (c) {
                 case '\0': return handle_eof_token(lx);
                 case '\'': return handle_char_token(lx);
+                case '"': return handle_string_token(lx);
                 case '_': return handle_identifier_token(lx);
                 case '/': return handle_slash_token(lx);
                 case '+': return single_token(lx, TOK_PLUS);
