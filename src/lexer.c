@@ -215,6 +215,59 @@ static Token handle_slash_token(Lexer *lx)
         return tok;
 }
 
+static Token char_literal_error(Lexer *lx, Token t, const char *msg)
+{
+        fprintf(stderr, "ERROR: %s\n", msg);
+        t.tok_kind = TOK_ERROR;
+        t.length = lx->cur - t.start;
+        return t;
+}
+
+static Token handle_char_token(Lexer *lx)
+{
+        Token t = {
+                .tok_kind = TOK_CHAR_LITERAL,
+                .start = lx->cur,
+                .length = 1,
+                .line = lx->line,
+                .col = lx->col
+        };
+        advance(lx);
+
+        char c = peek(lx);
+        if (c == '\'') {
+                advance(lx);
+                return char_literal_error(lx, t, "Emtpy character literal");
+        }
+        if (c == '\0' || c == '\n') {
+                return char_literal_error(lx, t, "Unterminated character literal");
+        }
+        if (c == '\\') {
+                advance(lx);
+                c = peek(lx);
+                if (c == '\0' || c == '\n') {
+                        return char_literal_error(lx, t, "Unterminated character literal");
+                }
+        }
+        advance(lx);
+        c = peek(lx);
+
+        if (c != '\'') {
+                advance(lx);
+                c = peek(lx);
+                while (c != '\'' && c != '\0' && c != '\n') {
+                        advance(lx);
+                        c = peek(lx);
+                }
+                advance(lx);
+                return char_literal_error(lx, t, "Multi-character literal or unterminated");
+        }
+        advance(lx);
+
+        t.length = lx->cur - t.start;
+        return t;
+}
+
 Token lexer_next(Lexer *lx) {
         char c = skip_white_space(lx);
 
@@ -225,6 +278,9 @@ Token lexer_next(Lexer *lx) {
 
         switch (c) {
                 case '\0': return handle_eof_token(lx);
+                case '\'': return handle_char_token(lx);
+                case '_': return handle_identifier_token(lx);
+                case '/': return handle_slash_token(lx);
                 case '+': return single_token(lx, TOK_PLUS);
                 case '-': return single_token(lx, TOK_MINUS);
                 case '*': return single_token(lx, TOK_STAR);
