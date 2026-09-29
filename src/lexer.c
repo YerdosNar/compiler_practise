@@ -211,6 +211,7 @@ static Token handle_slash_token(Lexer *lx)
         if (peek2(lx) == '*') return comment_multi_line(lx, tok);
         if (peek2(lx) == '/') return comment_single_line(lx, tok);
 
+        advance(lx);
         return tok;
 }
 
