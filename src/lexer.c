@@ -39,7 +39,7 @@ void lexer_init(Lexer *lx, const char *source) {
 }
 
 static char peek (Lexer *lx) { return lx->cur[0]; }
-static char peek2(Lexer *lx) { return lx->cur[1]; }
+static char peek2(Lexer *lx) { return lx->cur[0] ? lx->cur[1] : '\0'; }
 
 static char advance(Lexer *lx) {
         char cur = *lx->cur;
@@ -170,7 +170,7 @@ static Token comment_multi_line(Lexer *lx, Token tok)
 {
         advance(lx);advance(lx);
         char c = peek(lx);
-        while (c != '*' && peek2(lx) != '/') {
+        while (!(c == '*' && peek2(lx) == '/')) {
                 if (c == '\0') {
                         fprintf(stderr, "ERROR: Multiline comment not closed\n");
                         exit(EXIT_FAILURE);
