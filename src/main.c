@@ -1,8 +1,10 @@
+#include "ast.h"
 #include "lexer.h"
+#include "parser.h"
 
 #include <stdio.h>
 
-char *tok_kind_name(TokenKind tk)
+static char *tok_kind_name(TokenKind tk)
 {
         switch (tk) {
                 case TOK_EOF:           return "TOK_EOF";
@@ -51,7 +53,7 @@ char *tok_kind_name(TokenKind tk)
         }
 }
 
-u32 print_token(Token t) {
+static u32 print_token(Token t) {
         if (t.tok_kind == TOK_ERROR) {
                 fprintf(stderr, "ERROR: Unknown token: %.*s\n", (int)t.length, t.start);
                 fprintf(stderr, "LINE: %u, COL: %u\n\n", t.line, t.col);
@@ -62,6 +64,34 @@ u32 print_token(Token t) {
         return 0;
 }
 
+static const char *op_symbol(TokenKind k)
+{
+        switch (k) {
+                case TOK_PLUS:          return "+";
+                case TOK_MINUS:         return "-";
+                case TOK_STAR:          return "*";
+                case TOK_SLASH:         return "/";
+                case TOK_MODULO:        return "%";
+                default:                return "?";
+        }
+}
+
+static void print_expr(Expr *e)
+{
+        switch (e->kind) {
+                case EXPR_NUMBER:
+                        printf("%lld", (long long)e->number);
+                        break;
+                case EXPR_BINARY:
+                        printf("(%s ", op_symbol(e->binary.op));
+                        print_expr(e->binary.left);
+                        printf(" ");
+                        print_expr(e->binary.right);
+                        printf(")");
+                        break;
+        }
+}
+
 int main(int argc, char **argv) {
         if (argc < 2) {
                 fprintf(stderr, "ERROR: Give a string \"+ - * / ( ) \"\n");
@@ -70,15 +100,19 @@ int main(int argc, char **argv) {
 
         u32 error_count = 0;
         printf("TinyC start\n\n");
-        const char *src = argv[1];
-        Lexer lx;
-        lexer_init(&lx, src);
-        while (1) {
-                Token t = lexer_next(&lx);
-                if (t.tok_kind == TOK_EOF) break;
-                error_count += print_token(t);
-        }
 
+        Lexer lx;lexer_init(&lx, argv[1]);
+        Parser p;parser_init(&p,&lx);
+        Expr *e = parse(&p);
+        print_expr(e);
+        printf("\n");
+        //
+        // while (1) {
+        //         Token t = lexer_next(&lx);
+        //         if (t.tok_kind == TOK_EOF) break;
+        //         error_count += print_token(t);
+        // }
+        //
         printf("ERRORS: %u\n", error_count);
         if (error_count) return 1;
 

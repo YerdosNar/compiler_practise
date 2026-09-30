@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Wpedantic -Wformat -g
+CFLAGS = -std=c11 -Wall -Wextra -Wpedantic -Wformat -g -Wshadow
 TARGET = tinyc
 
 SRCS = src/main.c src/lexer.c src/parser.c 
