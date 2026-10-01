@@ -88,5 +88,6 @@ typedef struct {
 
 void lexer_init(Lexer *lx, const char *source);
 Token lexer_next(Lexer *lx);
+char *tok_kind_name(TokenKind tk);
 
 #endif
