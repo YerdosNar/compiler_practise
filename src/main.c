@@ -5,17 +5,6 @@
 
 #include <stdio.h>
 
-static u32 print_token(Token t) {
-        if (t.tok_kind == TOK_ERROR) {
-                fprintf(stderr, "ERROR: Unknown token: %.*s\n", (int)t.length, t.start);
-                fprintf(stderr, "LINE: %u, COL: %u\n\n", t.line, t.col);
-                return 1;
-        }
-        printf("%s: %.*s\n", tok_kind_name(t.tok_kind), (int)t.length, t.start);
-        printf("LINE: %u, COL: %u\n\n", t.line, t.col);
-        return 0;
-}
-
 static const char *op_symbol(TokenKind k)
 {
         switch (k) {
@@ -71,12 +60,7 @@ int main(int argc, char **argv) {
         Parser p;parser_init(&p,&lx);
         Stmt *prog = parse(&p);
         codegen(prog);
-        //
-        // printf("\n\nExpr: ");
-        // print_expr(e);
-        // printf("\n");
-        // printf("ERRORS: %u\n", error_count);
-        //
+
         if (error_count) return 1;
 
         return 0;
