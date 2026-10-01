@@ -25,4 +25,19 @@ typedef struct Expr {
         };
 } Expr;
 
+typedef enum {
+        STMT_EXPR,
+        STMT_RETURN,
+        STMT_BLOCK
+} StmtKind;
+
+typedef struct Stmt {
+        StmtKind kind;
+        struct Stmt *next;
+        union {
+                Expr *expr;
+                struct Stmt *body;
+        };
+} Stmt;
+
 #endif
