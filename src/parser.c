@@ -33,11 +33,22 @@ static Expr *new_expr(ExprKind kind)
 {
         Expr *e = malloc(sizeof(Expr));
         if (!e) {
-                perror("malloc");
+                perror("Expr malloc");
                 exit(EXIT_FAILURE);
         }
         e->kind = kind;
         return e;
+}
+
+static Stmt *new_stmt(StmtKind sk)
+{
+        Stmt *st = calloc(1, sizeof(Stmt));
+        if (!st) {
+                perror("Stmt calloc");
+                exit(EXIT_FAILURE);
+        }
+        st->kind = sk;
+        return st;
 }
 
 static Expr *new_number(i64 value)
@@ -162,8 +173,7 @@ static Expr *parse_equality(Parser *p)
                check(p, TOK_NE))
         {
                 TokenKind op = advance(p).tok_kind;
-                Expr *right = parse_relational(p);
-                left = new_binary(op, left, right);
+                Expr *right = parse_relational(p); left = new_binary(op, left, right);
         }
         return left;
 }
@@ -190,14 +200,52 @@ static Expr *parse_or(Parser *p)
         return left;
 }
 
+static Stmt *parse_block(Parser *p);
+static Stmt *parse_stmt(Parser *p)
+{
+        if (check(p, TOK_KW_RETURN)) {
+                advance(p);
+                Stmt *s = new_stmt(STMT_RETURN);
+                s->expr = parse_expr(p);
+                expect(p, TOK_SEMICOLON, "Expected ';' after return");
+                return s;
+        }
+
+        if (check(p, TOK_LCURLY)) return parse_block(p);
+
+        Stmt *s = new_stmt(STMT_EXPR);
+        s->expr = parse_expr(p);
+        expect(p, TOK_SEMICOLON, "Expected ';' after expression");
+        return s;
+}
+
+static Stmt *parse_block(Parser *p)
+{
+        expect(p, TOK_LCURLY, "Expected '{'");
+
+        Stmt head = {0};
+        Stmt *cur = &head;
+        while (!check(p, TOK_RCURLY)) {
+                if (check(p, TOK_EOF)) 
+                        error_at(p->current, "Expected '}'");
+                cur->next = parse_stmt(p);
+                cur = cur->next;
+        }
+        advance(p);
+
+        Stmt *s = new_stmt(STMT_BLOCK);
+        s->body = head.next;
+        return s;
+}
+
 Expr *parse_expr(Parser *p)
 {
         return parse_or(p);
 }
 
-Expr *parse(Parser *p)
+Stmt *parse(Parser *p)
 {
-        Expr *e = parse_expr(p);
+        Stmt *st = parse_block(p);
         expect(p, TOK_EOF, "Unexpected token after expression");
-        return e;
+        return st;
 }

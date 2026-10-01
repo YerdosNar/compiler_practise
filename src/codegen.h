@@ -3,6 +3,6 @@
 
 #include "ast.h"
 
-void codegen(Expr *e);
+void codegen(Stmt *e);
 
 #endif

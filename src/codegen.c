@@ -113,12 +113,31 @@ static void gen_expr(Expr *e)
         }
 }
 
-void codegen(Expr *e)
+static void gen_stmt(Stmt *s)
+{
+        switch (s->kind) {
+                case STMT_EXPR:
+                        gen_expr(s->expr);
+                        return;
+                case STMT_RETURN:
+                        gen_expr(s->expr);
+                        printf("  jmp .L.return\n");
+                        return;
+                case STMT_BLOCK:
+                        for (Stmt *cur = s->body; cur; cur = cur->next)
+                                gen_stmt(cur);
+                        return;
+        }
+}
+
+void codegen(Stmt *prog)
 {
         printf("  .intel_syntax noprefix\n");
         printf("  .globl main\n");
         printf("main:\n");
-        gen_expr(e);
+        gen_stmt(prog);
+        printf("  mov\trax,\t0\n");
+        printf(".L.return:\n");
         printf("  ret\n");
         printf("  .section .note.GNU-stack,\"\",@progbits\n");
 }

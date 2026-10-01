@@ -69,8 +69,8 @@ int main(int argc, char **argv) {
 
         Lexer lx;lexer_init(&lx, argv[1]);
         Parser p;parser_init(&p,&lx);
-        Expr *e = parse(&p);
-        codegen(e);
+        Stmt *prog = parse(&p);
+        codegen(prog);
         //
         // printf("\n\nExpr: ");
         // print_expr(e);
