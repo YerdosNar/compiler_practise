@@ -69,26 +69,26 @@ static char skip_white_space(Lexer *lx)
         return c;
 }
 
-static Token handle_eof_token(Lexer *lx)
+static Token token_init(TokenKind kind, Lexer *lx, u32 len)
 {
         Token t = {
-                .tok_kind = TOK_EOF,
-                .line = lx->line,
-                .col = lx->col,
+                .tok_kind = kind,
                 .start = lx->cur,
-                .length = 0
+                .length = len,
+                .line = lx->line,
+                .col = lx->col
         };
         return t;
 }
 
+static Token handle_eof_token(Lexer *lx)
+{
+        return token_init(TOK_EOF, lx, 0);
+}
+
 static Token handle_number_token(Lexer *lx)
 {
-        Token t = {
-                .tok_kind = TOK_NUMBER,
-                .start = lx->cur,
-                .line = lx->line,
-                .col = lx->col,
-        };
+        Token t = token_init(TOK_NUMBER, lx, 1);
         char c = peek(lx);
         while (isdigit((u8)c)) {
                 advance(lx);
@@ -101,11 +101,7 @@ static Token handle_number_token(Lexer *lx)
 
 static Token handle_identifier_token(Lexer *lx)
 {
-        Token t = {
-                .start = lx->cur,
-                .line = lx->line,
-                .col = lx->col
-        };
+        Token t = token_init(TOK_IDENTIFIER, lx, 1);
 
         char c = peek(lx);
         while (isalnum((u8)c) || c == '_') {
@@ -122,13 +118,7 @@ static Token handle_identifier_token(Lexer *lx)
 static Token handle_error_token(Lexer *lx)
 {
         char c = peek(lx);
-        Token t = {
-                .tok_kind = TOK_ERROR,
-                .start = lx->cur,
-                .length = 1,
-                .line = lx->line,
-                .col = lx->col
-        };
+        Token t = token_init(TOK_ERROR, lx, 1);
         fprintf(stderr, "ERROR: Not supported token: %c\n", c);
         advance(lx);
         return t;
@@ -136,25 +126,14 @@ static Token handle_error_token(Lexer *lx)
 
 static Token single_token(Lexer *lx, TokenKind kind)
 {
-        Token tok = {
-                .tok_kind = kind,
-                .start = lx->cur,
-                .length = 1,
-                .line = lx->line,
-                .col = lx->col
-        };
+        Token tok = token_init(kind, lx, 1);
         advance(lx);
         return tok;
 }
 
 static Token multi_token(Lexer *lx, char with, TokenKind wo_eq, TokenKind with_eq)
 {
-        Token tok = {
-                .start = lx->cur,
-                .length = 1,
-                .line = lx->line,
-                .col = lx->col
-        };
+        Token tok = token_init(wo_eq, lx, 1);
         if (peek2(lx) == with) {
                 tok.tok_kind = with_eq;
                 tok.length = 2;
@@ -201,13 +180,7 @@ static Token comment_single_line(Lexer *lx, Token tok)
 
 static Token handle_slash_token(Lexer *lx)
 {
-        Token tok = {
-                .tok_kind = TOK_SLASH,
-                .start = lx->cur,
-                .length = 1,
-                .line = lx->line,
-                .col = lx->col,
-        };
+        Token tok = token_init(TOK_SLASH, lx, 1);
         if (peek2(lx) == '*') return comment_multi_line(lx, tok);
         if (peek2(lx) == '/') return comment_single_line(lx, tok);
 
@@ -225,13 +198,7 @@ static Token char_literal_error(Lexer *lx, Token t, const char *msg)
 
 static Token handle_char_token(Lexer *lx)
 {
-        Token t = {
-                .tok_kind = TOK_CHAR_LITERAL,
-                .start = lx->cur,
-                .length = 1,
-                .line = lx->line,
-                .col = lx->col
-        };
+        Token t = token_init(TOK_CHAR_LITERAL, lx, 1);
         advance(lx);
 
         char c = peek(lx);
@@ -270,12 +237,7 @@ static Token handle_char_token(Lexer *lx)
 
 static Token handle_string_token(Lexer *lx)
 {
-        Token t = {
-                .tok_kind = TOK_STRING_LITERAL,
-                .start = lx->cur,
-                .line = lx->line,
-                .col = lx->col
-        };
+        Token t = token_init(TOK_STRING_LITERAL, lx, 1);
         advance(lx);
         char c = peek(lx);
 
