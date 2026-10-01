@@ -5,7 +5,8 @@
 
 typedef enum {
         EXPR_NUMBER,
-        EXPR_BINARY
+        EXPR_BINARY,
+        EXPR_UNARY
 } ExprKind;
 
 typedef struct Expr {
@@ -17,6 +18,10 @@ typedef struct Expr {
                         struct Expr *left;
                         struct Expr *right;
                 } binary;
+                struct {
+                        TokenKind op;
+                        struct Expr *operand;
+                } unary;
         };
 } Expr;
 

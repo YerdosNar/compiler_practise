@@ -72,6 +72,16 @@ static const char *op_symbol(TokenKind k)
                 case TOK_STAR:          return "*";
                 case TOK_SLASH:         return "/";
                 case TOK_MODULO:        return "%";
+                case TOK_AND:           return "&&";
+                case TOK_AMP:           return "&";
+                case TOK_OR:            return "||";
+                case TOK_LT:            return "<";
+                case TOK_LE:            return "<=";
+                case TOK_GT:            return ">";
+                case TOK_GE:            return ">=";
+                case TOK_EQ:            return "==";
+                case TOK_NE:            return "!=";
+                case TOK_NOT:           return "!";
                 default:                return "?";
         }
 }
@@ -89,6 +99,11 @@ static void print_expr(Expr *e)
                         print_expr(e->binary.right);
                         printf(")");
                         break;
+                case EXPR_UNARY:
+                        printf("(%s ", op_symbol(e->unary.op));
+                        print_expr(e->unary.operand);
+                        printf(")");
+                        break;
         }
 }
 
@@ -104,16 +119,11 @@ int main(int argc, char **argv) {
         Lexer lx;lexer_init(&lx, argv[1]);
         Parser p;parser_init(&p,&lx);
         Expr *e = parse(&p);
+
         print_expr(e);
         printf("\n");
-        //
-        // while (1) {
-        //         Token t = lexer_next(&lx);
-        //         if (t.tok_kind == TOK_EOF) break;
-        //         error_count += print_token(t);
-        // }
-        //
         printf("ERRORS: %u\n", error_count);
+
         if (error_count) return 1;
 
         return 0;
