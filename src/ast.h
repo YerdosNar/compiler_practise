@@ -6,13 +6,15 @@
 typedef enum {
         EXPR_NUMBER,
         EXPR_BINARY,
-        EXPR_UNARY
+        EXPR_UNARY,
+        EXPR_VAR
 } ExprKind;
 
 typedef struct Expr {
         ExprKind kind;
         union {
                 i64 number;
+                char var;
                 struct {
                         TokenKind op;
                         struct Expr *left;
