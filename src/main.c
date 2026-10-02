@@ -4,6 +4,8 @@
 #include "parser.h"
 
 #include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
 
 static const char *op_symbol(TokenKind k)
 {
@@ -23,6 +25,7 @@ static const char *op_symbol(TokenKind k)
                 case TOK_EQ:            return "==";
                 case TOK_NE:            return "!=";
                 case TOK_NOT:           return "!";
+                case TOK_ASSIGN:        return "=";
                 default:                return "?";
         }
 }
@@ -32,6 +35,9 @@ static void print_expr(Expr *e)
         switch (e->kind) {
                 case EXPR_NUMBER:
                         printf("%lld", (long long)e->number);
+                        break;
+                case EXPR_VAR:
+                        printf("%c", e->var);
                         break;
                 case EXPR_BINARY:
                         printf("(%s ", op_symbol(e->binary.op));
@@ -54,14 +60,23 @@ int main(int argc, char **argv) {
                 return 1;
         }
 
-        u32 error_count = 0;
+        bool ast_mode = argc >= 2 && !strcmp(argv[1], "--ast");
+        const char *src = argv[ast_mode ? 2 : 1];
+        if (!src) {
+                fprintf(stderr, "Usage: %s [--ast] <program>\n", argv[0]);
+                return 1;
+        }
 
-        Lexer lx;lexer_init(&lx, argv[1]);
+        Lexer lx;lexer_init(&lx, src);
         Parser p;parser_init(&p,&lx);
-        Stmt *prog = parse(&p);
-        codegen(prog);
 
-        if (error_count) return 1;
+        if (ast_mode) {
+                print_expr(parse_expr(&p));
+                printf("\n");
+        } else {
+                Stmt *prog = parse(&p);
+                codegen(prog);
+        }
 
         return 0;
 }
