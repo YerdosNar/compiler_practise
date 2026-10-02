@@ -6,17 +6,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void parser_init(Parser *p, Lexer *lx)
-{
-        p->lx = lx;
-        p->current = lexer_next(lx);
-}
+/* Forward declarations */
+static Stmt *parse_block(Parser *p);
+
+static bool check(Parser *p, TokenKind k) {return p->current.tok_kind == k;}
 
 static Token advance(Parser *p)
 {
         Token prev = p->current;
         p->current = lexer_next(p->lx);
         return prev;
+}
+
+static _Noreturn void error_at(Token t, const char *msg)
+{
+        fprintf(stderr, "ERROR: %s\n", msg);
+        fprintf(stderr, "At %u:%u\n", t.line, t.col);
+        exit(EXIT_FAILURE);
+}
+
+static void expect(Parser *p, TokenKind kind, const char *msg)
+{
+        Token t = p->current;
+        if (t.tok_kind != kind) error_at(t, msg);
+        advance(p);
 }
 
 static i64 token_to_long(Token t)
@@ -75,25 +88,6 @@ static Expr *new_unary(TokenKind op, Expr *operand)
         return e;
 }
 
-static _Noreturn void error_at(Token t, const char *msg)
-{
-        fprintf(stderr, "ERROR: %s\n", msg);
-        fprintf(stderr, "At %u:%u\n", t.line, t.col);
-        exit(EXIT_FAILURE);
-}
-
-static void expect(Parser *p, TokenKind kind, const char *msg)
-{
-        Token t = p->current;
-        if (t.tok_kind != kind) error_at(t, msg);
-        advance(p);
-}
-
-static bool check(Parser *p, TokenKind k)
-{
-        return p->current.tok_kind == k;
-}
-
 static Expr *parse_primary(Parser *p)
 {
         if (check(p, TOK_NUMBER)) {
@@ -105,6 +99,15 @@ static Expr *parse_primary(Parser *p)
                 advance(p);
                 Expr *e = parse_expr(p);
                 expect(p, TOK_RPAREN, "Expected ')'");
+                return e;
+        }
+
+        if (check(p, TOK_IDENTIFIER)) {
+                Token t = advance(p);
+                if (t.length != 1 || t.start[0] < 'a' || t.start[0] >'z')
+                        error_at(t, "Only single-letter variables (a-z) for now");
+                Expr *e = new_expr(EXPR_VAR);
+                e->var = t.start[0];
                 return e;
         }
 
@@ -173,7 +176,8 @@ static Expr *parse_equality(Parser *p)
                check(p, TOK_NE))
         {
                 TokenKind op = advance(p).tok_kind;
-                Expr *right = parse_relational(p); left = new_binary(op, left, right);
+                Expr *right = parse_relational(p); 
+                left = new_binary(op, left, right);
         }
         return left;
 }
@@ -200,7 +204,20 @@ static Expr *parse_or(Parser *p)
         return left;
 }
 
-static Stmt *parse_block(Parser *p);
+static Expr *parse_assign(Parser *p)
+{
+        Expr *left = parse_or(p);
+        if (check(p, TOK_ASSIGN)) {
+                TokenKind op = advance(p).tok_kind;
+                Expr *right = parse_assign(p);
+                return new_binary(op, left, right);
+        }
+        return left;
+}
+
+/* It does absolutely nothing, just exists for convenience of change */
+Expr *parse_expr(Parser *p) {return parse_assign(p);}
+
 static Stmt *parse_stmt(Parser *p)
 {
         if (check(p, TOK_KW_RETURN)) {
@@ -238,14 +255,16 @@ static Stmt *parse_block(Parser *p)
         return s;
 }
 
-Expr *parse_expr(Parser *p)
-{
-        return parse_or(p);
-}
-
 Stmt *parse(Parser *p)
 {
         Stmt *st = parse_block(p);
         expect(p, TOK_EOF, "Unexpected token after expression");
         return st;
 }
+
+void parser_init(Parser *p, Lexer *lx)
+{
+        p->lx = lx;
+        p->current = lexer_next(lx);
+}
+
