@@ -6,6 +6,8 @@
 #include <stdlib.h>
 
 static void gen_expr(Expr *e);
+static void gen_addr(Expr *e);
+static void gen_assign(Expr *e);
 
 static void comparison_code(const char *instruction)
 {
@@ -26,7 +28,7 @@ static void gen_and(Expr *e)
 
         gen_expr(e->binary.left);
         printf("  cmp\trax,\t0\n");
-        printf(  "je\t.L.false.%d\n", n);
+        printf("  je\t.L.false.%d\n", n);
         gen_expr(e->binary.right);
         printf("  cmp\trax,\t0\n");
         printf("  je\t.L.false.%d\n", n);
@@ -62,6 +64,11 @@ static void gen_expr(Expr *e)
                 printf("  mov\trax,\t%lld\n", (long long)e->number);
                 return;
 
+        case EXPR_VAR:
+                gen_addr(e);
+                printf("  mov\trax,\r[rax]\n");
+                return;
+
         case EXPR_UNARY:
                 gen_expr(e->unary.operand);
                 switch (e->unary.op) {
@@ -77,8 +84,9 @@ static void gen_expr(Expr *e)
                 return;
 
         case EXPR_BINARY:
-                if (e->binary.op == TOK_AND) { gen_and(e); return;}
-                if (e->binary.op == TOK_OR)  { gen_or(e);  return;}
+                if (e->binary.op == TOK_AND)    { gen_and(e);    return;}
+                if (e->binary.op == TOK_OR)     { gen_or(e);     return;}
+                if (e->binary.op == TOK_ASSIGN) { gen_assign(e); return;}
 
                 gen_expr(e->binary.right);
                 printf("  push\trax\n");
@@ -130,14 +138,38 @@ static void gen_stmt(Stmt *s)
         }
 }
 
+static void gen_addr(Expr *e)
+{
+        if (e->kind != EXPR_VAR) {
+                fprintf(stderr, "ERROR: left side of '=' is not a variable\n");
+                exit(EXIT_FAILURE);
+        }
+        int offset = (e->var - 'a' + 1) * 8;
+        printf("  lea\trax,\t[rbp-%d]\n", offset);
+}
+
+static void gen_assign(Expr *e)
+{
+        gen_addr(e->binary.left);
+        printf("  push\trax\n");
+        gen_expr(e->binary.right);
+        printf("  pop\trdi\n");
+        printf("  mov\t[rdi],\trax\n");
+}
+
 void codegen(Stmt *prog)
 {
         printf("  .intel_syntax noprefix\n");
         printf("  .globl main\n");
         printf("main:\n");
+        printf("  push\trbp\n");
+        printf("  mov\trbp,\trsp\n");
+        printf("  sub\trsp,\t208\n");
         gen_stmt(prog);
         printf("  mov\trax,\t0\n");
         printf(".L.return:\n");
+        printf("  mov\trsp,\trbp\n");
+        printf("  pop\trbp\n");
         printf("  ret\n");
         printf("  .section .note.GNU-stack,\"\",@progbits\n");
 }
