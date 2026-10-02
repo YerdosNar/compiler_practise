@@ -18,4 +18,4 @@ test: $(TARGET)
 	./test.sh
 
 clean:
-	rm -rf build $(TARGET)
+	rm -rf build $(TARGET) tmp*
