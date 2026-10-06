@@ -5,9 +5,21 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* Forward declarations */
 static Stmt *parse_block(Parser *p);
+static Var *find_var(Var *list, Token name);
+
+static void *check_calloc(size_t size, const char *msg)
+{
+        void *ptr = calloc(1, size);
+        if (!ptr) {
+                perror(msg);
+                exit(EXIT_FAILURE);
+        }
+        return ptr;
+}
 
 static bool check(Parser *p, TokenKind k) {return p->current.tok_kind == k;}
 
@@ -44,22 +56,14 @@ static i64 token_to_long(Token t)
 
 static Expr *new_expr(ExprKind kind)
 {
-        Expr *e = malloc(sizeof(Expr));
-        if (!e) {
-                perror("Expr malloc");
-                exit(EXIT_FAILURE);
-        }
+        Expr *e = check_calloc(sizeof(Expr), "Expr");
         e->kind = kind;
         return e;
 }
 
 static Stmt *new_stmt(StmtKind sk)
 {
-        Stmt *st = calloc(1, sizeof(Stmt));
-        if (!st) {
-                perror("Stmt calloc");
-                exit(EXIT_FAILURE);
-        }
+        Stmt *st = check_calloc(sizeof(Stmt), "Stmt");
         st->kind = sk;
         return st;
 }
