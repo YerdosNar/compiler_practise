@@ -6,6 +6,7 @@
 
 typedef struct {
         Lexer *lx;
+        Var *locals;
         Token current;
 } Parser;
 
