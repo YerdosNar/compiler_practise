@@ -10,11 +10,19 @@ typedef enum {
         EXPR_VAR
 } ExprKind;
 
+typedef struct Var {
+        struct Var *next;
+        TokenKind kind;
+        const char *name;
+        u32 length;
+        i32 offset;
+} Var;
+
 typedef struct Expr {
         ExprKind kind;
         union {
                 i64 number;
-                char var;
+                Var *var;
                 struct {
                         TokenKind op;
                         struct Expr *left;
