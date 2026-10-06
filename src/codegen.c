@@ -144,8 +144,7 @@ static void gen_addr(Expr *e)
                 fprintf(stderr, "ERROR: left side of '=' is not a variable\n");
                 exit(EXIT_FAILURE);
         }
-        int offset = (e->var - 'a' + 1) * 8;
-        printf("  lea\trax,\t[rbp-%d]\n", offset);
+        printf("  lea\trax,\t[rbp-%d]\n", e->var->offset);
 }
 
 static void gen_assign(Expr *e)
@@ -157,14 +156,14 @@ static void gen_assign(Expr *e)
         printf("  mov\t[rdi],\trax\n");
 }
 
-void codegen(Stmt *prog)
+void codegen(Stmt *prog, i32 stack_size)
 {
         printf("  .intel_syntax noprefix\n");
         printf("  .globl main\n");
         printf("main:\n");
         printf("  push\trbp\n");
         printf("  mov\trbp,\trsp\n");
-        printf("  sub\trsp,\t208\n");
+        printf("  sub\trsp,\t%d\n", (stack_size + 15) / 16 * 16);
         gen_stmt(prog);
         printf("  mov\trax,\t0\n");
         printf(".L.return:\n");
