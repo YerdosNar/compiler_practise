@@ -37,7 +37,7 @@ static void print_expr(Expr *e)
                         printf("%lld", (long long)e->number);
                         break;
                 case EXPR_VAR:
-                        printf("%c", e->var);
+                        printf("%.*s", (int)e->var->length, e->var->name);
                         break;
                 case EXPR_BINARY:
                         printf("(%s ", op_symbol(e->binary.op));
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
                 printf("\n");
         } else {
                 Stmt *prog = parse(&p);
-                codegen(prog);
+                codegen(prog, p.locals ? p.locals->offset : 0);
         }
 
         return 0;

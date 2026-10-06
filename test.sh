@@ -90,14 +90,13 @@ assert_error '{ return 1;'
 assert_error '{ { return 1; }'
 
 echo -e "\n${blu}Testing variables${rst}"
-assert 3 '{ a = 3; return a; }'
-assert 8 '{ a = 3; b = 5; return a + b; }'
-assert 6 '{ a = b = 3; return a + b; }'
-assert 2 '{ a = 1; a = a + 1; return a; }'
-assert 4 '{ x = 2; y = x * 3; z = y - x; return z; }'
-assert 8 '{ return (a = 7) + 1; }'
-assert_error '{ 1 = 2; }'
-assert_error '{ foo = 1; }'
+assert 5  '{ int count; count = 5; return count; }'
+assert 12 '{ int x; int y; x = 3; y = 4; return x * y; }'
+assert 14 '{ int foo; int bar; foo = bar = 7; return foo + bar; }'
+assert 2  '{ int a; { a = 2; } return a; }'
+assert_error '{ a = 1; }'
+assert_error '{ int a; int a; }'
+assert_error '{ int 5; }'
 
 if [ $fail -eq 0 ]; then
         echo -e "${blu}All tests passed${rst}"
