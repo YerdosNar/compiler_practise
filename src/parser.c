@@ -108,10 +108,10 @@ static Expr *parse_primary(Parser *p)
 
         if (check(p, TOK_IDENTIFIER)) {
                 Token t = advance(p);
-                if (t.length != 1 || t.start[0] < 'a' || t.start[0] >'z')
-                        error_at(t, "Only single-letter variables (a-z) for now");
+                Var *v = find_var(p->locals, t);
+                if (!v) error_at(t, "Undeclared variable");
                 Expr *e = new_expr(EXPR_VAR);
-                e->var = t.start[0];
+                e->var = v;
                 return e;
         }
 
@@ -222,8 +222,43 @@ static Expr *parse_assign(Parser *p)
 /* It does absolutely nothing, just exists for convenience of change */
 Expr *parse_expr(Parser *p) {return parse_assign(p);}
 
+static Var *find_var(Var *list, Token name)
+{
+        for (Var *v = list; v; v = v->next) {
+                if (v->length == name.length && 
+                   !memcmp(v->name, name.start, name.length))
+                {
+                        return v;
+                }
+        }
+        return NULL;
+}
+
+static Var *declare_var(Parser *p, Token name)
+{
+        if (find_var(p->locals, name)) 
+                error_at(name, "Redeclared variable");
+
+        Var *v = check_calloc(sizeof(Var), "Var");
+        v->name = name.start;
+        v->length = name.length;
+        v->offset = (p->locals ? p->locals->offset : 0) + 8;
+        v->next = p->locals;
+        p->locals = v;
+        return v;
+}
+
 static Stmt *parse_stmt(Parser *p)
 {
+        if (check(p, TOK_KW_INT)) {
+                advance(p);
+                Token name = p->current;
+                expect(p, TOK_IDENTIFIER, "Expected variable name after 'int'");
+                declare_var(p, name);
+                expect(p, TOK_SEMICOLON, "Expected ';' after declaration");
+                return new_stmt(STMT_BLOCK);
+        }
+
         if (check(p, TOK_KW_RETURN)) {
                 advance(p);
                 Stmt *s = new_stmt(STMT_RETURN);
@@ -270,5 +305,6 @@ void parser_init(Parser *p, Lexer *lx)
 {
         p->lx = lx;
         p->current = lexer_next(lx);
+        p->locals = NULL;
 }
 
