@@ -39,6 +39,7 @@ typedef enum {
         STMT_EXPR,
         STMT_RETURN,
         STMT_IF,
+        STMT_WHILE,
         STMT_BLOCK
 } StmtKind;
 
@@ -54,6 +55,10 @@ typedef struct Stmt {
                         struct Stmt *then;
                         struct Stmt *els;
                 } if_stmt;
+                struct {
+                        Expr *cond;
+                        struct Stmt *body;
+                } while_stmt;
         };
 } Stmt;
 
