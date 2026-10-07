@@ -95,8 +95,9 @@ assert 12 '{ int x; int y; x = 3; y = 4; return x * y; }'
 assert 14 '{ int foo; int bar; foo = bar = 7; return foo + bar; }'
 assert 2  '{ int a; { a = 2; } return a; }'
 assert_error '{ a = 1; }'
-assert_error '{ int a; int a; }'
 assert_error '{ int 5; }'
+assert_error '{ int a; int a; }'
+assert_error '{ int a; a = 3; b = a; }'
 
 echo -e "\n${blu}Testing if/else${rst}"
 assert 2  '{ if (1) return 2; return 3; }'
