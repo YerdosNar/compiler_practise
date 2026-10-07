@@ -98,6 +98,18 @@ assert_error '{ a = 1; }'
 assert_error '{ int a; int a; }'
 assert_error '{ int 5; }'
 
+echo -e "\n${blu}Testing if/else${rst}"
+assert 2  '{ if (1) return 2; return 3; }'
+assert 3  '{ if (0) return 2; return 3; }'
+assert 4  '{ if (0) return 2; else return 4; }'
+assert 10 '{ int a; a = 5; if (a > 3) a = a * 2; return a; }'
+assert 11 '{ int a; a = 1; if (a == 0) { return 1; } else { a = a + 10; } return a; }'
+assert 2  '{ if (1) if (0) return 1; else return 2; return 3; }'
+assert 5  '{ if (0 && 1/0) return 1; return 5; }'
+assert_error '{ if 1 return 2; }'
+
+rm tmp*
+
 if [ $fail -eq 0 ]; then
         echo -e "${blu}All tests passed${rst}"
 else
