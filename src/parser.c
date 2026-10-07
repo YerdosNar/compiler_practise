@@ -250,6 +250,20 @@ static Var *declare_var(Parser *p, Token name)
 
 static Stmt *parse_stmt(Parser *p)
 {
+        if (check(p, TOK_KW_IF)) {
+                advance(p);
+                expect(p, TOK_LPAREN, "Expected '(' after 'if'");
+                Stmt *s = new_stmt(STMT_IF);
+                s->if_stmt.cond = parse_expr(p);
+                expect(p, TOK_RPAREN, "Expected ')' after condition");
+                s->if_stmt.then = parse_stmt(p);
+                if (check(p, TOK_KW_ELSE)) {
+                        advance(p);
+                        s->if_stmt.els = parse_stmt(p);
+                }
+                return s;
+        }
+
         if (check(p, TOK_KW_INT)) {
                 advance(p);
                 Token name = p->current;
