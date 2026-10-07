@@ -127,10 +127,24 @@ static void gen_stmt(Stmt *s)
                 case STMT_EXPR:
                         gen_expr(s->expr);
                         return;
+
                 case STMT_RETURN:
                         gen_expr(s->expr);
                         printf("  jmp .L.return\n");
                         return;
+                        
+                case STMT_IF: {
+                        int n = next_label();
+                        gen_expr(s->if_stmt.cond);
+                        printf("  cmp\trax,\t0\n");
+                        printf("  je\t.L.else.%d\n", n);
+                        gen_stmt(s->if_stmt.then);
+                        printf("  jmp\t.L.end.%d\n", n);
+                        printf(".L.else.%d:\n", n);
+                        if (s->if_stmt.els) gen_stmt(s->if_stmt.els);
+                        printf(".L.end.%d:\n", n);
+                        return;
+                }
                 case STMT_BLOCK:
                         for (Stmt *cur = s->body; cur; cur = cur->next)
                                 gen_stmt(cur);
