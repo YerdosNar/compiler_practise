@@ -2,6 +2,7 @@
 #include "lexer.h"
 #include "parser.h"
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,10 +31,16 @@ static Token advance(Parser *p)
         return prev;
 }
 
-static _Noreturn void error_at(Token t, const char *msg)
+static _Noreturn void error_at(Token t, const char *fmt, ...)
 {
-        fprintf(stderr, "ERROR: %s\n", msg);
-        fprintf(stderr, "At %u:%u\n", t.line, t.col);
+        va_list args;
+
+        fprintf(stderr, "ERROR: ");
+        va_start(args, fmt);
+        vfprintf(stderr, fmt, args);
+        va_end(args);
+
+        fprintf(stderr, "\nAt %u:%u\n", t.line, t.col);
         exit(EXIT_FAILURE);
 }
 
@@ -109,7 +116,7 @@ static Expr *parse_primary(Parser *p)
         if (check(p, TOK_IDENTIFIER)) {
                 Token t = advance(p);
                 Var *v = find_var(p->locals, t);
-                if (!v) error_at(t, "Undeclared variable");
+                if (!v) error_at(t, "Undeclared variable '%.*s'", (int)t.length, t.start);
                 Expr *e = new_expr(EXPR_VAR);
                 e->var = v;
                 return e;
