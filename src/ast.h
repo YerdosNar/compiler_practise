@@ -38,8 +38,10 @@ typedef struct Expr {
 typedef enum {
         STMT_EXPR,
         STMT_RETURN,
+        STMT_IF,
         STMT_BLOCK
 } StmtKind;
+
 
 typedef struct Stmt {
         StmtKind kind;
@@ -47,6 +49,11 @@ typedef struct Stmt {
         union {
                 Expr *expr;
                 struct Stmt *body;
+                struct {
+                        Expr *cond;
+                        struct Stmt *then;
+                        struct Stmt *els;
+                } if_stmt;
         };
 } Stmt;
 
