@@ -116,6 +116,14 @@ assert 55 '{ int i; int s; i = 1; s = 0; while (i <= 10) { s = s + i; i = i + 1;
 assert 2  '{ while (0) return 1; return 2; }'
 assert 89 '{ int a; int b; int t; int n; a = 0; b = 1; n = 11; while (n > 0) { t = a + b; a = b; b = t; n = n - 1; } return a; }'
 
+echo -e "\n${blu}Testing for${rst}"
+assert 55 '{ int i; int s; s = 0; for (i = 1; i <= 10; i = i + 1) s = s + i; return s; }'
+assert 5  '{ int i; for (i = 0; i < 5; i = i + 1) { } return i; }'
+assert 7  '{ int i; i = 3; for (; i < 7;) i = i + 1; return i; }'
+assert 3  '{ for (;;) return 3; return 5; }'
+assert 12 '{ int i; int j; int c; c = 0; for (i = 0; i < 3; i = i + 1) for (j = 0; j < 4; j = j + 1) c = c + 1; return c; }'
+assert_error '{ for (;) return 1; }'
+
 rm tmp*
 
 if [ $fail -eq 0 ]; then
