@@ -15,6 +15,7 @@ static const Keyword_tok kv_array[] = {
         { .tok_kw = TOK_KW_WHILE,   .str_kw = "while"  },
         { .tok_kw = TOK_KW_FOR,     .str_kw = "for"    },
         { .tok_kw = TOK_KW_RETURN,  .str_kw = "return" },
+        { .tok_kw = TOK_KW_BREAK,   .str_kw = "break"  },
 };
 
 static TokenKind keyword_or_identifier(const char *start, u32 length)
@@ -309,6 +310,7 @@ char *tok_kind_name(TokenKind tk)
                 case TOK_KW_WHILE:      return "TOK_KW_WHILE";
                 case TOK_KW_FOR:        return "TOK_KW_FOR";
                 case TOK_KW_RETURN:     return "TOK_KW_RETURN";
+                case TOK_KW_BREAK:      return "TOK_KW_BREAK";
                 case TOK_ASSIGN:        return "TOK_ASSIGN";
                 case TOK_AND:           return "TOK_AND";
                 case TOK_OR:            return "TOK_OR";
@@ -337,6 +339,7 @@ char *tok_kind_name(TokenKind tk)
                 case TOK_RCURLY:        return "TOK_RCURLY";
                 case TOK_COMMA:         return "TOK_COMMA";
                 case TOK_SEMICOLON:     return "TOK_SEMICOLON";
+
                 default: return "Unknown";
         }
 }
