@@ -110,6 +110,12 @@ assert 2  '{ if (1) if (0) return 1; else return 2; return 3; }'
 assert 5  '{ if (0 && 1/0) return 1; return 5; }'
 assert_error '{ if 1 return 2; }'
 
+echo -e "\n${blu}Testing while${rst}"
+assert 10 '{ int i; i = 0; while (i < 10) i = i + 1; return i; }'
+assert 55 '{ int i; int s; i = 1; s = 0; while (i <= 10) { s = s + i; i = i + 1; } return s; }'
+assert 2  '{ while (0) return 1; return 2; }'
+assert 89 '{ int a; int b; int t; int n; a = 0; b = 1; n = 11; while (n > 0) { t = a + b; a = b; b = t; n = n - 1; } return a; }'
+
 rm tmp*
 
 if [ $fail -eq 0 ]; then
