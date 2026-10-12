@@ -322,6 +322,13 @@ static Stmt *parse_return(Parser *p)
 
 }
 
+static Stmt *parse_break(Parser *p)
+{
+        advance(p);
+        expect(p, TOK_SEMICOLON, "Expected ';' after 'break'");
+        return new_stmt(STMT_BREAK);
+}
+
 static Stmt *parse_stmt(Parser *p)
 {
         TokenKind tk = p->current.tok_kind;
@@ -331,7 +338,9 @@ static Stmt *parse_stmt(Parser *p)
                 case TOK_KW_IF:     return parse_if(p);
                 case TOK_KW_INT:    return parse_int(p);
                 case TOK_KW_RETURN: return parse_return(p);
+                case TOK_KW_BREAK:  return parse_break(p);
                 case TOK_LCURLY:    return parse_block(p);
+
                 default: {
                         Stmt *s = new_stmt(STMT_EXPR);
                         s->expr = parse_expr(p);
