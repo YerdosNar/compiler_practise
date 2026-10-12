@@ -158,6 +158,24 @@ static void gen_stmt(Stmt *s)
                         return;
                 }
 
+                case STMT_FOR: {
+                        int n = next_label();
+                        if (s->for_stmt.init) 
+                                gen_expr(s->for_stmt.init);
+                        printf(".L.begin.%d:\n", n);
+                        if (s->for_stmt.cond) {
+                                gen_expr(s->for_stmt.cond);
+                                printf("  cmp  rax, 0\n");
+                                printf("  je  .L.end.%d\n", n);
+                        }
+                        gen_stmt(s->for_stmt.body);
+                        if (s->for_stmt.inc)
+                                gen_expr(s->for_stmt.inc);
+                        printf("  jmp  .L.begin.%d\n", n);
+                        printf(".L.end.%d:\n", n);
+                        return;
+                }
+
                 case STMT_BLOCK:
                         for (Stmt *cur = s->body; cur; cur = cur->next)
                                 gen_stmt(cur);
