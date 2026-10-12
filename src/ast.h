@@ -15,7 +15,7 @@ typedef struct Var {
         TokenKind kind;
         const char *name;
         u32 length;
-        i32 offset;
+        u32 offset;
 } Var;
 
 typedef struct Expr {
@@ -41,7 +41,8 @@ typedef enum {
         STMT_IF,
         STMT_WHILE,
         STMT_FOR,
-        STMT_BLOCK
+        STMT_BREAK,
+        STMT_BLOCK,
 } StmtKind;
 
 
