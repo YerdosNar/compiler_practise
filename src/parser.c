@@ -257,6 +257,16 @@ static Var *declare_var(Parser *p, Token name)
 
 static Stmt *parse_stmt(Parser *p)
 {
+        if (check(p, TOK_KW_WHILE)) {
+                advance(p);
+                expect(p, TOK_LPAREN, "Expected '(' after 'while'");
+                Stmt *s = new_stmt(STMT_WHILE);
+                s->while_stmt.cond = parse_expr(p);
+                expect(p, TOK_RPAREN, "Expected ')' after condition");
+                s->while_stmt.body = parse_stmt(p);
+                return s;
+        }
+
         if (check(p, TOK_KW_IF)) {
                 advance(p);
                 expect(p, TOK_LPAREN, "Expected '(' after 'if'");
