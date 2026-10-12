@@ -21,7 +21,7 @@ assert() {
                 return
         fi
         gcc -o tmp tmp.s || exit 1
-        ./tmp
+        timeout 3 ./tmp
         actual="$?"
         if [ "$actual" = "$expected" ]; then
                 echo -e "${grn}PASS: ${rst}$actual <= $input"
