@@ -2,11 +2,14 @@
 
 red="\033[31m"
 grn="\033[32m"
+yel="\033[33m"
 blu="\033[34m"
 rst="\033[0m"
 
 pass=0
 fail=0
+
+max_width=$(( ${COLUMNS:-78} - 8 ))
 
 assert() {
         expected="$1"
@@ -83,7 +86,7 @@ assert 1      '{ return 1 || 1/0; }'
 assert 1      '{ return 1 || 0 && 0; }'
 assert 1      '{ return (0 || 1) && (1 && 2); }'
 
-echo -e "\n${blu}Testing error cases${rst}"
+echo -e "\n${yel}Testing error cases${rst}"
 assert_error '{ return 1 }'
 assert_error '{ 1 }'
 assert_error '{ return 1;'
@@ -94,6 +97,8 @@ assert 5  '{ int count; count = 5; return count; }'
 assert 12 '{ int x; int y; x = 3; y = 4; return x * y; }'
 assert 14 '{ int foo; int bar; foo = bar = 7; return foo + bar; }'
 assert 2  '{ int a; { a = 2; } return a; }'
+
+echo -e "\n${yel}Testing error cases${rst}"
 assert_error '{ a = 1; }'
 assert_error '{ int 5; }'
 assert_error '{ int a; int a; }'
@@ -108,6 +113,8 @@ assert 11 '{ int a; a = 1; if (a == 0) { return 1; } else { a = a + 10; } return
 assert 2  '{ int a; a = 1; if (a == 1) { a= a + 1; } else { a = a + 10; } return a; }'
 assert 2  '{ if (1) if (0) return 1; else return 2; return 3; }'
 assert 5  '{ if (0 && 1/0) return 1; return 5; }'
+
+echo -e "\n${yel}Testing error cases${rst}"
 assert_error '{ if 1 return 2; }'
 
 echo -e "\n${blu}Testing while${rst}"
@@ -122,8 +129,20 @@ assert 5  '{ int i; for (i = 0; i < 5; i = i + 1) { } return i; }'
 assert 7  '{ int i; i = 3; for (; i < 7;) i = i + 1; return i; }'
 assert 3  '{ for (;;) return 3; return 5; }'
 assert 12 '{ int i; int j; int c; c = 0; for (i = 0; i < 3; i = i + 1) for (j = 0; j < 4; j = j + 1) c = c + 1; return c; }'
+
+echo -e "\n${yel}Testing error cases${rst}"
 assert_error '{ for (;) return 1; }'
 
+echo -e "\n${blu}Testing break${rst}"
+assert 5  '{ int i; i = 0; while (1) { if (i == 5) break; i = i + 1; } return i; }'
+assert 7  '{ int i; for (i = 0; ; i = i + 1) if (i == 7) break; return i; }'
+assert 36 '{ int i; int j; int c; c = 0; for (i = 0; i < 3; i = i + 1) { for (j = 0; ; j = j + 1) { if (j == 2) break; c = c + 1; } c = c + 10; } return c; }'
+assert 4  '{ int i; int j; for (i = 0; i < 10; i = i + 1) { for (j = 0; j < 3; j = j + 1) { } if (i == 4) break; } return i; }'
+
+echo -e "\n${yel}Testing error cases${rst}"
+assert_error '{ break; }'
+
+echo ""
 rm tmp*
 
 if [ $fail -eq 0 ]; then
