@@ -40,6 +40,7 @@ typedef enum {
         STMT_RETURN,
         STMT_IF,
         STMT_WHILE,
+        STMT_FOR,
         STMT_BLOCK
 } StmtKind;
 
@@ -50,15 +51,24 @@ typedef struct Stmt {
         union {
                 Expr *expr;
                 struct Stmt *body;
+
                 struct {
                         Expr *cond;
                         struct Stmt *then;
                         struct Stmt *els;
                 } if_stmt;
+
                 struct {
                         Expr *cond;
                         struct Stmt *body;
                 } while_stmt;
+
+                struct {
+                        Expr *init;
+                        Expr *cond;
+                        Expr *inc;
+                        struct Stmt *body;
+                } for_stmt;
         };
 } Stmt;
 
