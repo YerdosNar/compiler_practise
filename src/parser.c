@@ -257,6 +257,27 @@ static Var *declare_var(Parser *p, Token name)
 
 static Stmt *parse_stmt(Parser *p)
 {
+        if (check(p, TOK_KW_FOR)) {
+                advance(p);
+                expect(p, TOK_LPAREN, "Expected '(' after 'for'");
+                Stmt *s = new_stmt(STMT_FOR);
+
+                if (!check(p, TOK_SEMICOLON))
+                        s->for_stmt.init = parse_expr(p);
+                expect(p, TOK_SEMICOLON, "Expected ';' after for-initializer");
+
+                if (!check(p, TOK_SEMICOLON))
+                        s->for_stmt.cond = parse_expr(p);
+                expect(p, TOK_SEMICOLON, "Expected ';' after for-condition");
+
+                if (!check(p, TOK_RPAREN)) 
+                        s->for_stmt.inc = parse_expr(p);
+                expect(p, TOK_RPAREN, "Expected ')' after for-clauses");
+
+                s->for_stmt.body = parse_stmt(p);
+                return s;
+        }
+
         if (check(p, TOK_KW_WHILE)) {
                 advance(p);
                 expect(p, TOK_LPAREN, "Expected '(' after 'while'");
