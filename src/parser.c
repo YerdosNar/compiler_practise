@@ -10,6 +10,7 @@
 
 /* Forward declarations */
 static Stmt *parse_block(Parser *p);
+static Stmt *parse_stmt(Parser *p);
 static Var *find_var(Var *list, Token name);
 
 static void *check_calloc(size_t size, const char *msg)
@@ -255,76 +256,89 @@ static Var *declare_var(Parser *p, Token name)
         return v;
 }
 
+static Stmt *parse_for(Parser *p)
+{
+        advance(p);
+        expect(p, TOK_LPAREN, "Expected '(' after 'for'");
+        Stmt *s = new_stmt(STMT_FOR);
+
+        if (!check(p, TOK_SEMICOLON)) s->for_stmt.init = parse_expr(p);
+        expect(p, TOK_SEMICOLON, "Expected ';' after for-initializer");
+
+        if (!check(p, TOK_SEMICOLON)) s->for_stmt.cond = parse_expr(p);
+        expect(p, TOK_SEMICOLON, "Expected ';' after for-condition");
+
+        if (!check(p, TOK_RPAREN)) s->for_stmt.inc = parse_expr(p);
+        expect(p, TOK_RPAREN, "Expected ')' after for-clauses");
+
+        s->for_stmt.body = parse_stmt(p);
+        return s;
+}
+
+static Stmt *parse_while(Parser *p)
+{
+        advance(p);
+        expect(p, TOK_LPAREN, "Expected '(' after 'while'");
+        Stmt *s = new_stmt(STMT_WHILE);
+        s->while_stmt.cond = parse_expr(p);
+        expect(p, TOK_RPAREN, "Expected ')' after condition");
+        s->while_stmt.body = parse_stmt(p);
+        return s;
+}
+
+static Stmt *parse_if(Parser *p)
+{
+        advance(p);
+        expect(p, TOK_LPAREN, "Expected '(' after 'if'");
+        Stmt *s = new_stmt(STMT_IF);
+        s->if_stmt.cond = parse_expr(p);
+        expect(p, TOK_RPAREN, "Expected ')' after condition");
+        s->if_stmt.then = parse_stmt(p);
+        if (check(p, TOK_KW_ELSE)) {
+                advance(p);
+                s->if_stmt.els = parse_stmt(p);
+        }
+        return s;
+}
+
+static Stmt *parse_int(Parser *p)
+{
+        advance(p);
+        Token name = p->current;
+        expect(p, TOK_IDENTIFIER, "Expected variable name after 'int'");
+        declare_var(p, name);
+        expect(p, TOK_SEMICOLON, "Expected ';' after declaration");
+        return new_stmt(STMT_BLOCK);
+
+}
+
+static Stmt *parse_return(Parser *p)
+{
+        advance(p);
+        Stmt *s = new_stmt(STMT_RETURN);
+        s->expr = parse_expr(p);
+        expect(p, TOK_SEMICOLON, "Expected ';' after return");
+        return s;
+
+}
+
 static Stmt *parse_stmt(Parser *p)
 {
-        if (check(p, TOK_KW_FOR)) {
-                advance(p);
-                expect(p, TOK_LPAREN, "Expected '(' after 'for'");
-                Stmt *s = new_stmt(STMT_FOR);
-
-                if (!check(p, TOK_SEMICOLON))
-                        s->for_stmt.init = parse_expr(p);
-                expect(p, TOK_SEMICOLON, "Expected ';' after for-initializer");
-
-                if (!check(p, TOK_SEMICOLON))
-                        s->for_stmt.cond = parse_expr(p);
-                expect(p, TOK_SEMICOLON, "Expected ';' after for-condition");
-
-                if (!check(p, TOK_RPAREN)) 
-                        s->for_stmt.inc = parse_expr(p);
-                expect(p, TOK_RPAREN, "Expected ')' after for-clauses");
-
-                s->for_stmt.body = parse_stmt(p);
-                return s;
-        }
-
-        if (check(p, TOK_KW_WHILE)) {
-                advance(p);
-                expect(p, TOK_LPAREN, "Expected '(' after 'while'");
-                Stmt *s = new_stmt(STMT_WHILE);
-                s->while_stmt.cond = parse_expr(p);
-                expect(p, TOK_RPAREN, "Expected ')' after condition");
-                s->while_stmt.body = parse_stmt(p);
-                return s;
-        }
-
-        if (check(p, TOK_KW_IF)) {
-                advance(p);
-                expect(p, TOK_LPAREN, "Expected '(' after 'if'");
-                Stmt *s = new_stmt(STMT_IF);
-                s->if_stmt.cond = parse_expr(p);
-                expect(p, TOK_RPAREN, "Expected ')' after condition");
-                s->if_stmt.then = parse_stmt(p);
-                if (check(p, TOK_KW_ELSE)) {
-                        advance(p);
-                        s->if_stmt.els = parse_stmt(p);
+        TokenKind tk = p->current.tok_kind;
+        switch (tk) {
+                case TOK_KW_FOR:    return parse_for(p);
+                case TOK_KW_WHILE:  return parse_while(p);
+                case TOK_KW_IF:     return parse_if(p);
+                case TOK_KW_INT:    return parse_int(p);
+                case TOK_KW_RETURN: return parse_return(p);
+                case TOK_LCURLY:    return parse_block(p);
+                default: {
+                        Stmt *s = new_stmt(STMT_EXPR);
+                        s->expr = parse_expr(p);
+                        expect(p, TOK_SEMICOLON, "Expected ';' after expression");
+                        return s;
                 }
-                return s;
         }
-
-        if (check(p, TOK_KW_INT)) {
-                advance(p);
-                Token name = p->current;
-                expect(p, TOK_IDENTIFIER, "Expected variable name after 'int'");
-                declare_var(p, name);
-                expect(p, TOK_SEMICOLON, "Expected ';' after declaration");
-                return new_stmt(STMT_BLOCK);
-        }
-
-        if (check(p, TOK_KW_RETURN)) {
-                advance(p);
-                Stmt *s = new_stmt(STMT_RETURN);
-                s->expr = parse_expr(p);
-                expect(p, TOK_SEMICOLON, "Expected ';' after return");
-                return s;
-        }
-
-        if (check(p, TOK_LCURLY)) return parse_block(p);
-
-        Stmt *s = new_stmt(STMT_EXPR);
-        s->expr = parse_expr(p);
-        expect(p, TOK_SEMICOLON, "Expected ';' after expression");
-        return s;
 }
 
 static Stmt *parse_block(Parser *p)
