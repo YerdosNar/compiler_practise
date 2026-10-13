@@ -3,6 +3,6 @@
 
 #include "ast.h"
 
-void codegen(Stmt *e, u32 stack_size);
+void codegen(Function *prog);
 
 #endif

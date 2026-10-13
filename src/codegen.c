@@ -9,6 +9,7 @@ static void gen_expr(Expr *e);
 static void gen_addr(Expr *e);
 static void gen_assign(Expr *e);
 static u32  break_label = 0;
+static Function *current_fn;
 
 static void comparison_code(const char *instruction)
 {
@@ -131,7 +132,9 @@ static void gen_stmt(Stmt *s)
 
                 case STMT_RETURN:
                         gen_expr(s->expr);
-                        printf("  jmp    .L.return\n");
+                        printf("  jmp    .L.return.%.*s\n", 
+                               (i32)current_fn->length,
+                               current_fn->name);
                         return;
                         
                 case STMT_IF: {
@@ -216,19 +219,26 @@ static void gen_assign(Expr *e)
         printf("  mov    [rdi],  rax\n");
 }
 
-void codegen(Stmt *prog, u32 stack_size)
+void codegen(Function *prog)
 {
         printf("  .intel_syntax noprefix\n");
-        printf("  .globl main\n");
-        printf("main:\n");
-        printf("  push   rbp\n");
-        printf("  mov    rbp,  rsp\n");
-        printf("  sub    rsp,  %u\n", (stack_size + 15) / 16 * 16);
-        gen_stmt(prog);
-        printf("  mov    rax,  0\n");
-        printf(".L.return:\n");
-        printf("  mov    rsp,  rbp\n");
-        printf("  pop    rbp\n");
-        printf("  ret\n");
+
+        for (Function *fn = prog; fn; fn = fn->next) {
+                current_fn = fn;
+                i32 len = (i32)fn->length;
+
+                printf("  .globl %.*s\n", len, fn->name);
+                printf("%.*s:\n", len, fn->name);
+                printf("  push   rbp\n");
+                printf("  mov    rbp,  rsp\n");
+                printf("  sub    rsp,  %u\n", 
+                       (fn->stack_size + 15) / 16 * 16);
+                gen_stmt(fn->body);
+                printf("  mov    rax,  0\n");
+                printf(".L.return.%.*s:\n", len, fn->name);
+                printf("  mov    rsp,  rbp\n");
+                printf("  pop    rbp\n");
+                printf("  ret\n");
+        }
         printf("  .section .note.GNU-stack,\"\",@progbits\n");
 }
