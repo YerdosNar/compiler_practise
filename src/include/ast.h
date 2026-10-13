@@ -7,6 +7,7 @@ typedef enum {
         EXPR_NUMBER,
         EXPR_BINARY,
         EXPR_UNARY,
+        EXPR_CALL,
         EXPR_VAR
 } ExprKind;
 
@@ -23,15 +24,22 @@ typedef struct Expr {
         union {
                 i64 number;
                 Var *var;
+
                 struct {
                         TokenKind op;
                         struct Expr *left;
                         struct Expr *right;
                 } binary;
+
                 struct {
                         TokenKind op;
                         struct Expr *operand;
                 } unary;
+
+                struct {
+                        const char *name;
+                        u32 length;
+                } call;
         };
 } Expr;
 
