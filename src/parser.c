@@ -116,8 +116,19 @@ static Expr *parse_primary(Parser *p)
 
         if (check(p, TOK_IDENTIFIER)) {
                 Token t = advance(p);
+                if (check(p, TOK_LPAREN)) {
+                        advance(p);
+                        expect(p, TOK_RPAREN, 
+                               "Expected ')' after function name");
+                        Expr *e = new_expr(EXPR_CALL);
+                        e->call.name = t.start;
+                        e->call.length = t.length;
+                        return e;
+                }
                 Var *v = find_var(p->locals, t);
-                if (!v) error_at(t, "Undeclared variable: '%.*s'", (int)t.length, t.start);
+                if (!v) error_at(t, "Undeclared variable: '%.*s'", 
+                                 (int)t.length, 
+                                 t.start);
                 Expr *e = new_expr(EXPR_VAR);
                 e->var = v;
                 return e;
