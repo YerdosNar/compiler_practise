@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra -Wpedantic -Wformat -g -Wshadow
 TARGET = tinyc
 
-SRCS = src/main.c src/lexer.c src/parser.c src/codegen.c
+SRCS = $(wildcard src/*.c)
 OBJS = $(patsubst src/%.c, build/%.o, $(SRCS))
 
 $(TARGET): $(OBJS)
