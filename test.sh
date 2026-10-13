@@ -154,6 +154,11 @@ echo -e "\n${blu}Testing functions${rst}"
 assert 5 'int foo() { return 3; } int main() { return 5; }'
 assert 5 'int main() { return 5; } int foo() { return 3; }'
 assert 2 'int foo() { int a; a = 1; return a; } int main() { int a; a = 2; return a; }'
+assert 3  'int foo() { return 3; } int main() { return foo(); }'
+assert 8  'int main() { return foo() + 5; } int foo() { return 3; }'
+assert 20 'int five() { return 5; } int main() { return five() * five() - five(); }'
+assert 2  'int main() { int a; a = 2; b(); return a; } int b() { int a; a = 7; return a; }'
+assert 3  'int one() { return 1; } int two() { return one() + one(); } int main() { return two() + one(); }'
 
 echo -e "\n${yel}Testing error cases${rst}"
 assert_error '{ return 1; }'
