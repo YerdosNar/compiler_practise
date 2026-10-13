@@ -12,6 +12,6 @@ typedef struct {
 
 void parser_init(Parser *p, Lexer *lx);
 Expr *parse_expr(Parser *p);
-Stmt *parse(Parser *p);
+Function *parse(Parser *p);
 
 #endif

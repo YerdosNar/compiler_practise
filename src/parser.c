@@ -244,9 +244,9 @@ static Var *find_var(Var *list, Token name)
 
 static Var *declare_var(Parser *p, Token name)
 {
-        if (find_var(p->locals, name)) 
-                error_at(name, "Redeclared variable: '%.*s'", 
-                         name.length, 
+        if (find_var(p->locals, name))
+                error_at(name, "Redeclared variable: '%.*s'",
+                    (int)name.length,
                          name.start);
 
         Var *v = check_calloc(sizeof(Var), "Var");
@@ -371,11 +371,35 @@ static Stmt *parse_block(Parser *p)
         return s;
 }
 
-Stmt *parse(Parser *p)
+static Function *parse_function(Parser *p)
 {
-        Stmt *st = parse_block(p);
-        expect(p, TOK_EOF, "Unexpected token after program");
-        return st;
+        expect(p, TOK_KW_INT, "Expected 'int' before function name");
+        Token name = p->current;
+        expect(p, TOK_IDENTIFIER, "Expected function name");
+        expect(p, TOK_LPAREN, "Expected '(' after function name");
+        expect(p, TOK_RPAREN, "Expected ')' after arguments");
+
+        p->locals = NULL;
+
+        Function *fn = check_calloc(sizeof(Function), "Function");
+        fn->name = name.start;
+        fn->length = name.length;
+        fn->body = parse_block(p);
+        fn->locals = p->locals;
+        fn->stack_size = p->locals ? p->locals->offset : 0;
+
+        return fn;
+}
+
+Function *parse(Parser *p)
+{
+        Function head = {0};
+        Function *cur = &head;
+        while (!check(p, TOK_EOF)) {
+                cur->next = parse_function(p);
+                cur = cur->next;
+        }
+        return head.next;
 }
 
 void parser_init(Parser *p, Lexer *lx)
