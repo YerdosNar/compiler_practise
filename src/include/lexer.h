@@ -65,9 +65,6 @@ typedef enum {
         TOK_RCURLY,
         TOK_COMMA,
         TOK_SEMICOLON,
-
-        TOK_COMMENT_SL,
-        TOK_COMMENT_ML,
 } TokenKind;
 
 typedef struct {

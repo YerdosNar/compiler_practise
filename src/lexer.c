@@ -146,7 +146,7 @@ static Token multi_token(Lexer *lx, char with, TokenKind wo_eq, TokenKind with_e
         return tok;
 }
 
-static Token comment_multi_line(Lexer *lx, Token tok)
+static void comment_multi_line(Lexer *lx)
 {
         advance(lx);advance(lx);
         char c = peek(lx);
@@ -160,13 +160,9 @@ static Token comment_multi_line(Lexer *lx, Token tok)
         }
         /* Consume * / after */
         advance(lx);advance(lx);
-
-        tok.length = lx->cur - tok.start;
-        tok.tok_kind = TOK_COMMENT_ML;
-        return tok;
 }
 
-static Token comment_single_line(Lexer *lx, Token tok)
+static void comment_single_line(Lexer *lx)
 {
         advance(lx);advance(lx);
         char c = peek(lx);
@@ -174,16 +170,19 @@ static Token comment_single_line(Lexer *lx, Token tok)
                 advance(lx);
                 c = peek(lx);
         }
-        tok.length = lx->cur - tok.start;
-        tok.tok_kind = TOK_COMMENT_SL;
-        return tok;
 }
 
 static Token handle_slash_token(Lexer *lx)
 {
         Token tok = token_init(TOK_SLASH, lx, 1);
-        if (peek2(lx) == '*') return comment_multi_line(lx, tok);
-        if (peek2(lx) == '/') return comment_single_line(lx, tok);
+        if (peek2(lx) == '*') {
+                comment_multi_line(lx);
+                return lexer_next(lx);
+        }
+        if (peek2(lx) == '/') {
+                comment_single_line(lx);
+                return lexer_next(lx);
+        }
 
         advance(lx);
         return tok;
@@ -329,8 +328,6 @@ char *tok_kind_name(TokenKind tk)
                 case TOK_STAR:          return "TOK_STAR";
                 case TOK_SLASH:         return "TOK_SLASH";
                 case TOK_MODULO:        return "TOK_MODULO";
-                case TOK_COMMENT_ML:    return "TOK_COMMENT_ML";
-                case TOK_COMMENT_SL:    return "TOK_COMMENT_SL";
                 case TOK_LPAREN:        return "TOK_LPAREN";
                 case TOK_RPAREN:        return "TOK_RPAREN";
                 case TOK_LSQUARE:       return "TOK_LSQUARE";
