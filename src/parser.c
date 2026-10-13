@@ -117,7 +117,7 @@ static Expr *parse_primary(Parser *p)
         if (check(p, TOK_IDENTIFIER)) {
                 Token t = advance(p);
                 Var *v = find_var(p->locals, t);
-                if (!v) error_at(t, "Undeclared variable '%.*s'", (int)t.length, t.start);
+                if (!v) error_at(t, "Undeclared variable: '%.*s'", (int)t.length, t.start);
                 Expr *e = new_expr(EXPR_VAR);
                 e->var = v;
                 return e;
@@ -245,7 +245,9 @@ static Var *find_var(Var *list, Token name)
 static Var *declare_var(Parser *p, Token name)
 {
         if (find_var(p->locals, name)) 
-                error_at(name, "Redeclared variable");
+                error_at(name, "Redeclared variable: '%.*s'", 
+                         name.length, 
+                         name.start);
 
         Var *v = check_calloc(sizeof(Var), "Var");
         v->name = name.start;
@@ -372,7 +374,7 @@ static Stmt *parse_block(Parser *p)
 Stmt *parse(Parser *p)
 {
         Stmt *st = parse_block(p);
-        expect(p, TOK_EOF, "Unexpected token after expression");
+        expect(p, TOK_EOF, "Unexpected token after program");
         return st;
 }
 
