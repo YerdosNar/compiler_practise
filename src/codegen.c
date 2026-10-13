@@ -19,25 +19,25 @@ static void comparison_code(const char *instruction)
 
 static u32 next_label(void)
 {
-        static int count = 1;
+        static u32 count = 1;
         return count++;
 }
 
 static void gen_and(Expr *e)
 {
-        int n = next_label();
+        u32 n = next_label();
 
         gen_expr(e->binary.left);
         printf("  cmp    rax,  0\n");
-        printf("  je     .L.false.%d\n", n);
+        printf("  je     .L.false.%u\n", n);
         gen_expr(e->binary.right);
         printf("  cmp    rax,  0\n");
-        printf("  je     .L.false.%d\n", n);
+        printf("  je     .L.false.%u\n", n);
         printf("  mov    rax,  1\n");
-        printf("  jmp    .L.end.%d\n", n);
-        printf(".L.false.%d:\n", n);
+        printf("  jmp    .L.end.%u\n", n);
+        printf(".L.false.%u:\n", n);
         printf("  mov    rax,  0\n");
-        printf(".L.end.%d:\n", n);
+        printf(".L.end.%u:\n", n);
 }
 
 static void gen_or(Expr *e)
@@ -46,15 +46,15 @@ static void gen_or(Expr *e)
 
         gen_expr(e->binary.left);
         printf("  cmp    rax,  0\n");
-        printf("  jne    .L.true.%d\n", n);
+        printf("  jne    .L.true.%u\n", n);
         gen_expr(e->binary.right);
         printf("  cmp    rax,  0\n");
-        printf("  jne    .L.true.%d\n", n);
+        printf("  jne    .L.true.%u\n", n);
         printf("  mov    rax,  0\n");
-        printf("  jmp    .L.end.%d\n", n);
-        printf(".L.true.%d:\n", n);
+        printf("  jmp    .L.end.%u\n", n);
+        printf(".L.true.%u:\n", n);
         printf("  mov    rax,  1\n");
-        printf(".L.end.%d:\n", n);
+        printf(".L.end.%u:\n", n);
 
 }
 
@@ -155,7 +155,7 @@ static void gen_stmt(Stmt *s)
                         gen_expr(s->while_stmt.cond);
                         printf("  cmp    rax,  0\n");
                         printf("  je     .L.end.%u\n", n);
-                        gen_stmt(s->while_stmt.body);;
+                        gen_stmt(s->while_stmt.body);
                         break_label = saved;
                         printf("  jmp    .L.begin.%u\n", n);
                         printf(".L.end.%u:\n", n);
