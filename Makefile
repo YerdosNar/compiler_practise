@@ -1,6 +1,8 @@
 CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Wpedantic -Wformat -g -Wshadow
 TARGET = tinyc
+CFLAGS = -std=c11 -Wall -Wextra \
+	 -Wpedantic -Wformat -g \
+	 -Wshadow -MMD -MP
 
 SRCS = $(wildcard src/*.c)
 OBJS = $(patsubst src/%.c, build/%.o, $(SRCS))
