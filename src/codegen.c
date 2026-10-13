@@ -62,6 +62,10 @@ static void gen_or(Expr *e)
 static void gen_expr(Expr *e)
 {
         switch (e->kind) {
+        case EXPR_CALL:
+                printf("  call   %.*s\n", (int)e->call.length, e->call.name);
+                return;
+
         case EXPR_NUMBER:
                 printf("  mov    rax,  %lld\n", (long long)e->number);
                 return;
@@ -133,7 +137,7 @@ static void gen_stmt(Stmt *s)
                 case STMT_RETURN:
                         gen_expr(s->expr);
                         printf("  jmp    .L.return.%.*s\n", 
-                               (i32)current_fn->length,
+                               (int)current_fn->length,
                                current_fn->name);
                         return;
                         
@@ -225,7 +229,7 @@ void codegen(Function *prog)
 
         for (Function *fn = prog; fn; fn = fn->next) {
                 current_fn = fn;
-                i32 len = (i32)fn->length;
+                int len = (int)fn->length;
 
                 printf("  .globl %.*s\n", len, fn->name);
                 printf("%.*s:\n", len, fn->name);
