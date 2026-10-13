@@ -74,8 +74,7 @@ int main(int argc, char **argv) {
                 print_expr(parse_expr(&p));
                 printf("\n");
         } else {
-                Stmt *prog = parse(&p);
-                codegen(prog, p.locals ? p.locals->offset : 0);
+                codegen(parse(&p));
         }
 
         return 0;
