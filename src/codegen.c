@@ -1,6 +1,6 @@
-#include "ast.h"
-#include "lexer.h"
-#include "codegen.h"
+#include "include/ast.h"
+#include "include/lexer.h"
+#include "include/codegen.h"
 
 #include <stdio.h>
 #include <stdlib.h>

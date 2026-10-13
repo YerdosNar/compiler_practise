@@ -1,6 +1,6 @@
-#include "ast.h"
-#include "lexer.h"
-#include "parser.h"
+#include "include/ast.h"
+#include "include/lexer.h"
+#include "include/parser.h"
 
 #include <stdarg.h>
 #include <stdbool.h>
