@@ -73,4 +73,13 @@ typedef struct Stmt {
         };
 } Stmt;
 
+typedef struct Function {
+        struct Function *next;
+        const char *name;
+        u32 length;
+        Stmt *body;
+        Var *locals;
+        u32 stack_size;
+} Function;
+
 #endif
