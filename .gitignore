@@ -1,5 +1,3 @@
 tinyc
-tmp.s
-tmp.err
-tmp
+tmp*
 build/
