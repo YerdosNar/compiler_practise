@@ -8,7 +8,5 @@ make            # to compile, 'tinyc' executable is generated
 make test       # to compile and run the test
 make clean      # to clean up
 ```
-```
-```
 
 The `test.sh` file contains the bash script to test with different inputs.
