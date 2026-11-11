@@ -54,12 +54,9 @@ static void expect(Parser *p, TokenKind kind, const char *msg)
 
 static i64 token_to_long(Token t)
 {
-        i64 number = 0;
-        for (u32 i = 0; i < t.length; i++) {
-                number *= 10;
-                number += (t.start[i] - '0');
-        }
-        return number;
+        i64 n = 0;
+        for (u32 i = 0; i < t.length; i++) n = n * 10 + (t.start[i] - '0');
+        return n;
 }
 
 static Expr *new_expr(ExprKind kind)
@@ -95,8 +92,34 @@ static Expr *new_binary(TokenKind op, Expr *left, Expr *right)
 static Expr *new_unary(TokenKind op, Expr *operand)
 {
         Expr *e = new_expr(EXPR_UNARY);
-        e->unary.op = op;
+        e->unary.op      = op;
         e->unary.operand = operand;
+        return e;
+}
+
+static Expr *new_fn_expr(Parser *p, Token t)
+{
+        advance(p);
+        Expr *e = new_expr(EXPR_CALL);
+        e->call.name   = t.start;
+        e->call.length = t.length;
+
+        Expr head = {0};
+        Expr *cur = &head;
+        while (!check(p, TOK_RPAREN)) {
+                if (e->call.nargs > 0)
+                        expect(p, TOK_COMMA,
+                                "Expected ',' between args");
+                if (e->call.nargs >= 6)
+                        error_at(p->current,
+                                 "Too many args: %u (max 6)",
+                                 e->call.nargs);
+                cur->next = parse_expr(p);
+                cur = cur->next;
+                e->call.nargs++;
+        }
+        advance(p);
+        e->call.args = head.next;
         return e;
 }
 
@@ -116,18 +139,10 @@ static Expr *parse_primary(Parser *p)
 
         if (check(p, TOK_IDENTIFIER)) {
                 Token t = advance(p);
-                if (check(p, TOK_LPAREN)) {
-                        advance(p);
-                        expect(p, TOK_RPAREN, 
-                               "Expected ')' after function name");
-                        Expr *e = new_expr(EXPR_CALL);
-                        e->call.name = t.start;
-                        e->call.length = t.length;
-                        return e;
-                }
+                if (check(p, TOK_LPAREN)) return new_fn_expr(p, t);
                 Var *v = find_var(p->locals, t);
-                if (!v) error_at(t, "Undeclared variable: '%.*s'", 
-                                 (int)t.length, 
+                if (!v) error_at(t, "Undeclared variable: '%.*s'",
+                            (int)t.length,
                                  t.start);
                 Expr *e = new_expr(EXPR_VAR);
                 e->var = v;
@@ -139,7 +154,7 @@ static Expr *parse_primary(Parser *p)
 
 static Expr *parse_unary(Parser *p)
 {
-        if (check(p, TOK_MINUS) || 
+        if (check(p, TOK_MINUS) ||
             check(p, TOK_PLUS)  ||
             check(p, TOK_NOT))
         {
@@ -167,7 +182,7 @@ static Expr *parse_mul(Parser *p)
 static Expr *parse_add(Parser *p)
 {
         Expr *left = parse_mul(p);
-        while (check(p, TOK_PLUS) || 
+        while (check(p, TOK_PLUS) ||
                check(p, TOK_MINUS))
         {
                 TokenKind op = advance(p).tok_kind;
@@ -180,7 +195,7 @@ static Expr *parse_add(Parser *p)
 static Expr *parse_relational(Parser *p)
 {
         Expr *left = parse_add(p);
-        while (check(p, TOK_LT) || 
+        while (check(p, TOK_LT) ||
                check(p, TOK_LE) ||
                check(p, TOK_GT) ||
                check(p, TOK_GE))
@@ -199,7 +214,7 @@ static Expr *parse_equality(Parser *p)
                check(p, TOK_NE))
         {
                 TokenKind op = advance(p).tok_kind;
-                Expr *right = parse_relational(p); 
+                Expr *right = parse_relational(p);
                 left = new_binary(op, left, right);
         }
         return left;
@@ -244,11 +259,9 @@ Expr *parse_expr(Parser *p) {return parse_assign(p);}
 static Var *find_var(Var *list, Token name)
 {
         for (Var *v = list; v; v = v->next) {
-                if (v->length == name.length && 
+                if (v->length == name.length &&
                    !memcmp(v->name, name.start, name.length))
-                {
                         return v;
-                }
         }
         return NULL;
 }
@@ -260,11 +273,11 @@ static Var *declare_var(Parser *p, Token name)
                     (int)name.length,
                          name.start);
 
-        Var *v = check_calloc(sizeof(Var), "Var");
-        v->name = name.start;
+        Var *v    = check_calloc(sizeof(Var), "Var");
+        v->name   = name.start;
         v->length = name.length;
         v->offset = (p->locals ? p->locals->offset : 0) + 8;
-        v->next = p->locals;
+        v->next   = p->locals;
         p->locals = v;
         return v;
 }
@@ -322,7 +335,6 @@ static Stmt *parse_int(Parser *p)
         declare_var(p, name);
         expect(p, TOK_SEMICOLON, "Expected ';' after declaration");
         return new_stmt(STMT_BLOCK);
-
 }
 
 static Stmt *parse_return(Parser *p)
@@ -332,7 +344,6 @@ static Stmt *parse_return(Parser *p)
         s->expr = parse_expr(p);
         expect(p, TOK_SEMICOLON, "Expected ';' after return");
         return s;
-
 }
 
 static Stmt *parse_break(Parser *p)
@@ -370,7 +381,7 @@ static Stmt *parse_block(Parser *p)
         Stmt head = {0};
         Stmt *cur = &head;
         while (!check(p, TOK_RCURLY)) {
-                if (check(p, TOK_EOF)) 
+                if (check(p, TOK_EOF))
                         error_at(p->current, "Expected '}'");
                 cur->next = parse_stmt(p);
                 cur = cur->next;
@@ -382,19 +393,35 @@ static Stmt *parse_block(Parser *p)
         return s;
 }
 
+
 static Function *parse_function(Parser *p)
 {
         expect(p, TOK_KW_INT, "Expected 'int' before function name");
         Token name = p->current;
         expect(p, TOK_IDENTIFIER, "Expected function name");
         expect(p, TOK_LPAREN, "Expected '(' after function name");
-        expect(p, TOK_RPAREN, "Expected ')' after arguments");
 
-        p->locals = NULL;
-
+        p->locals    = NULL;
         Function *fn = check_calloc(sizeof(Function), "Function");
-        fn->name = name.start;
-        fn->length = name.length;
+        fn->name     = name.start;
+        fn->length   = name.length;
+
+        while (!check(p, TOK_RPAREN)) {
+                if (fn->nparams > 0)
+                        expect(p, TOK_COMMA,
+                               "Expected ',' between parameters");
+                if (fn->nparams >= 6)
+                        error_at(p->current,
+                                 "Too many parameters: %u (max 6)",
+                                 fn->nparams);
+                expect(p, TOK_KW_INT,
+                       "Expected 'int' before parameter name");
+                Token param = p->current;
+                expect(p, TOK_IDENTIFIER, "Extected parameter name");
+                fn->params[fn->nparams++] = declare_var(p, param);
+        }
+        advance(p);
+
         fn->body = parse_block(p);
         fn->locals = p->locals;
         fn->stack_size = p->locals ? p->locals->offset : 0;
@@ -419,4 +446,3 @@ void parser_init(Parser *p, Lexer *lx)
         p->current = lexer_next(lx);
         p->locals = NULL;
 }
-
