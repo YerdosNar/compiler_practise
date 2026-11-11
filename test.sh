@@ -176,6 +176,7 @@ echo -e "\n${yel}Testing error cases${rst}"
 assert_error 'int f(int a, int a) { return a; } int main() { return 0; }'
 assert_error 'int f(int a1, int a2, int a3, int a4, int a5, int a6, int a7) { return a1; } int main() { return f(1, 2, 3, 4, 5, 6, 7); }'
 assert_error 'int main() { return f(1,); }'
+assert_error 'int main() { return 1; } int main() { return 2; }'
 
 echo ""
 rm tmp
