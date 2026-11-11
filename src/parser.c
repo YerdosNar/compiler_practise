@@ -12,6 +12,7 @@
 static Stmt *parse_block(Parser *p);
 static Stmt *parse_stmt(Parser *p);
 static Var *find_var(Var *list, Token name);
+static Function *find_function(Function *list, Token name);
 
 static void *check_calloc(size_t size, const char *msg)
 {
@@ -393,12 +394,24 @@ static Stmt *parse_block(Parser *p)
         return s;
 }
 
+static Function *find_function(Function *list, Token name)
+{
+        for (Function *f = list; f; f = f->next) {
+                if (f->length == name.length &&
+                   !memcmp(f->name, name.start, name.length))
+                        return f;
+        }
+        return NULL;
+}
 
-static Function *parse_function(Parser *p)
+static Function *parse_function(Parser *p, Function *list)
 {
         expect(p, TOK_KW_INT, "Expected 'int' before function name");
         Token name = p->current;
         expect(p, TOK_IDENTIFIER, "Expected function name");
+        if (find_function(list, name))
+                error_at(name, "Redefinition of function '%.*s'",
+                         (int)name.length, name.start);
         expect(p, TOK_LPAREN, "Expected '(' after function name");
 
         p->locals    = NULL;
@@ -434,7 +447,7 @@ Function *parse(Parser *p)
         Function head = {0};
         Function *cur = &head;
         while (!check(p, TOK_EOF)) {
-                cur->next = parse_function(p);
+                cur->next = parse_function(p, head.next);
                 cur = cur->next;
         }
         return head.next;
