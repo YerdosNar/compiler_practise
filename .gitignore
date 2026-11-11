@@ -1,3 +1,4 @@
 tinyc
 tmp*
 build/
+*.s
