@@ -1,7 +1,8 @@
 # Compiler Practise:
 
->This compiler is made just to learn what compilers do under the hood. And to learn Assembly language on the way.\
->It is not meant to function properly.
+>This compiler is made just to learn what compilers do under the hood.
+>And to learn Assembly language on the way.
+>It compiles recursive functions to real x86-64 code.
 
 ```bash
 make            # to compile, 'tinyc' executable is generated
