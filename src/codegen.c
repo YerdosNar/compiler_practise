@@ -10,6 +10,14 @@ static void gen_addr(Expr *e);
 static void gen_assign(Expr *e);
 static u32  break_label = 0;
 static Function *current_fn;
+static const char *args_regs[] = {
+        "rdi",
+        "rsi",
+        "rdx",
+        "rcx",
+        "r8",
+        "r9"
+};
 
 static void comparison_code(const char *instruction)
 {
@@ -63,6 +71,12 @@ static void gen_expr(Expr *e)
 {
         switch (e->kind) {
         case EXPR_CALL:
+                for (Expr *arg = e->call.args; arg; arg = arg->next) {
+                        gen_expr(arg);
+                        printf("  push   rax\n");
+                }
+                for (int i = (int)e->call.nargs - 1; i >= 0; i--)
+                        printf("  pop    %s\n", args_regs[i]);
                 printf("  call   %.*s\n", (int)e->call.length, e->call.name);
                 return;
 
@@ -79,8 +93,9 @@ static void gen_expr(Expr *e)
                 gen_expr(e->unary.operand);
                 switch (e->unary.op) {
                         case TOK_PLUS:  return;
-                        case TOK_MINUS: printf("  neg    rax\n");          return;
-                        case TOK_NOT:   
+                        case TOK_MINUS: printf("  neg    rax\n");
+                                        return;
+                        case TOK_NOT:
                                 printf("  cmp    rax,  0\n");
                                 printf("  sete   al\n");
                                 printf("  movzx  rax,  al\n");
@@ -100,15 +115,15 @@ static void gen_expr(Expr *e)
                 printf("  pop    rdi\n");
 
                 switch (e->binary.op) {
-                        case TOK_PLUS:  printf("  add    rax,  rdi\n");     return;
-                        case TOK_MINUS: printf("  sub    rax,  rdi\n");     return;
-                        case TOK_STAR:  printf("  imul   rax,  rdi\n");    return;
-                        case TOK_EQ:    comparison_code("sete ");   return;
-                        case TOK_NE:    comparison_code("setne");  return;
-                        case TOK_LT:    comparison_code("setl ");   return;
-                        case TOK_LE:    comparison_code("setle");  return;
-                        case TOK_GT:    comparison_code("setg ");   return;
-                        case TOK_GE:    comparison_code("setge");  return;
+                        case TOK_PLUS:  printf("  add    rax,  rdi\n"); return;
+                        case TOK_MINUS: printf("  sub    rax,  rdi\n"); return;
+                        case TOK_STAR:  printf("  imul   rax,  rdi\n"); return;
+                        case TOK_EQ:    comparison_code("sete ");       return;
+                        case TOK_NE:    comparison_code("setne");       return;
+                        case TOK_LT:    comparison_code("setl ");       return;
+                        case TOK_LE:    comparison_code("setle");       return;
+                        case TOK_GT:    comparison_code("setg ");       return;
+                        case TOK_GE:    comparison_code("setge");       return;
                         case TOK_SLASH:
                                 printf("  cqo\n");
                                 printf("  idiv   rdi\n");
@@ -119,7 +134,7 @@ static void gen_expr(Expr *e)
                                 printf("  mov    rax,  rdx\n");
                                 return;
                         default:
-                                fprintf(stderr, 
+                                fprintf(stderr,
                                         "ERROR: codegen: unsupported operator: %s\n",
                                         tok_kind_name(e->binary.op));
                                 exit(EXIT_FAILURE);
@@ -136,11 +151,11 @@ static void gen_stmt(Stmt *s)
 
                 case STMT_RETURN:
                         gen_expr(s->expr);
-                        printf("  jmp    .L.return.%.*s\n", 
+                        printf("  jmp    .L.return.%.*s\n",
                                (int)current_fn->length,
                                current_fn->name);
                         return;
-                        
+
                 case STMT_IF: {
                         u32 n = next_label();
                         gen_expr(s->if_stmt.cond);
@@ -173,7 +188,7 @@ static void gen_stmt(Stmt *s)
                         u32 n = next_label();
                         u32 saved = break_label;
                         break_label = n;
-                        if (s->for_stmt.init) 
+                        if (s->for_stmt.init)
                                 gen_expr(s->for_stmt.init);
                         printf(".L.begin.%u:\n", n);
                         if (s->for_stmt.cond) {
@@ -235,8 +250,11 @@ void codegen(Function *prog)
                 printf("%.*s:\n", len, fn->name);
                 printf("  push   rbp\n");
                 printf("  mov    rbp,  rsp\n");
-                printf("  sub    rsp,  %u\n", 
+                printf("  sub    rsp,  %u\n",
                        (fn->stack_size + 15) / 16 * 16);
+                for (u32 i = 0; i < fn->nparams; i++)
+                        printf("  mov    [rbp-%u], %s\n",
+                               fn->params[i]->offset, args_regs[i]);
                 gen_stmt(fn->body);
                 printf("  mov    rax,  0\n");
                 printf(".L.return.%.*s:\n", len, fn->name);
