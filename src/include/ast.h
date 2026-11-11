@@ -21,6 +21,7 @@ typedef struct Var {
 
 typedef struct Expr {
         ExprKind kind;
+        struct Expr *next;
         union {
                 i64 number;
                 Var *var;
@@ -39,6 +40,8 @@ typedef struct Expr {
                 struct {
                         const char *name;
                         u32 length;
+                        struct Expr *args;
+                        u32 nargs;
                 } call;
         };
 } Expr;
@@ -87,6 +90,8 @@ typedef struct Function {
         u32 length;
         Stmt *body;
         Var *locals;
+        Var *params[6];
+        u32 nparams;
         u32 stack_size;
 } Function;
 
