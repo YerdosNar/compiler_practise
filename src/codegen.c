@@ -19,6 +19,20 @@ static const char *args_regs[] = {
         "r9"
 };
 
+static u32 depth = 0; /* values currently pushed by expression code */
+
+static void push(void)
+{
+        printf("  push   rax\n");
+        depth++;
+}
+
+static void pop(const char *reg)
+{
+        printf("  pop    %s\n", reg);
+        depth--;
+}
+
 static void comparison_code(const char *instruction)
 {
         printf("  cmp    rax,  rdi\n");
@@ -73,11 +87,19 @@ static void gen_expr(Expr *e)
         case EXPR_CALL:
                 for (Expr *arg = e->call.args; arg; arg = arg->next) {
                         gen_expr(arg);
-                        printf("  push   rax\n");
+                        push();
                 }
                 for (int i = (int)e->call.nargs - 1; i >= 0; i--)
-                        printf("  pop    %s\n", args_regs[i]);
-                printf("  call   %.*s\n", (int)e->call.length, e->call.name);
+                        pop(args_regs[i]);
+                if (depth % 2 == 1) {
+                        printf("  sub    rsp, 8\n");
+                        printf("  call   %.*s\n", (int)e->call.length,
+                                                e->call.name);
+                        printf("  add    rsp, 8\n");
+                } else {
+                        printf("  call   %.*s\n", (int)e->call.length,
+                                                e->call.name);
+                }
                 return;
 
         case EXPR_NUMBER:
@@ -110,9 +132,9 @@ static void gen_expr(Expr *e)
                 if (e->binary.op == TOK_ASSIGN) { gen_assign(e); return;}
 
                 gen_expr(e->binary.right);
-                printf("  push   rax\n");
+                push();
                 gen_expr(e->binary.left);
-                printf("  pop    rdi\n");
+                pop("rdi");
 
                 switch (e->binary.op) {
                         case TOK_PLUS:  printf("  add    rax,  rdi\n"); return;
@@ -232,9 +254,9 @@ static void gen_addr(Expr *e)
 static void gen_assign(Expr *e)
 {
         gen_addr(e->binary.left);
-        printf("  push   rax\n");
+        push();
         gen_expr(e->binary.right);
-        printf("  pop    rdi\n");
+        pop("rdi");
         printf("  mov    [rdi],  rax\n");
 }
 
