@@ -9,8 +9,6 @@ rst="\033[0m"
 pass=0
 fail=0
 
-max_width=$(( ${COLUMNS:-78} - 8 ))
-
 assert() {
         expected="$1"
         input="$2"
@@ -41,6 +39,26 @@ assert_error() {
                 ((pass++))
         else
                 echo -e "${red}FAIL: ${rst}$input => expected rejection (exit 1), got exit $status"
+                ((fail++))
+        fi
+}
+
+assert_output() {
+        expected="$1"
+        input="$2"
+        if ! ./tinyc "$input" > tmp.s 2> tmp.err; then
+                echo -e "${red}FAIL: ${rst}$input => compiler error:"
+                cat tmp.err
+                ((fail++))
+                return
+        fi
+        gcc -o tmp tmp.s || exit 1
+        actual=$(timeout 3 ./tmp)
+        if [ "$actual" = "$expected" ]; then
+                echo -e "${grn}PASS: ${rst}\"$actual\" <= $input"
+                ((pass++))
+        else
+                echo -e "${red}FAIL: ${rst}$input => expected \"$expected\", got \"$actual\""
                 ((fail++))
         fi
 }
@@ -177,6 +195,12 @@ assert_error 'int f(int a, int a) { return a; } int main() { return 0; }'
 assert_error 'int f(int a1, int a2, int a3, int a4, int a5, int a6, int a7) { return a1; } int main() { return f(1, 2, 3, 4, 5, 6, 7); }'
 assert_error 'int main() { return f(1,); }'
 assert_error 'int main() { return 1; } int main() { return 2; }'
+
+echo -e "\n${blu}Testing libc calls${rst}"
+assert_output 'Hi'         'int main() { putchar(72); putchar(105); return 0; }'
+assert_output 'ABC'        'int print3(int a, int b, int c) { putchar(a); putchar(b); putchar(c); return 0; } int main() { print3(65, 66, 67); return 0; }'
+assert_output '0123456789' 'int main() { int i; for (i = 0; i < 10; i = i + 1) putchar(48 + i); return 0; }'
+assert_output 'iH'         'int main() { return putchar(72) + putchar(105) - 177; }'
 
 echo ""
 rm tmp
