@@ -163,6 +163,20 @@ assert 3  'int one() { return 1; } int two() { return one() + one(); } int main(
 echo -e "\n${yel}Testing error cases${rst}"
 assert_error '{ return 1; }'
 
+echo -e "\n${blu}Testing parameters${rst}"
+assert 7   'int add(int a, int b) { return a + b; } int main() { return add(3, 4); }'
+assert 1   'int sub(int a, int b) { return a - b; } int main() { return sub(4, 3); }'
+assert 21  'int sum6(int a, int b, int c, int d, int e, int f) { return a + b + c + d + e + f; } int main() { return sum6(1, 2, 3, 4, 5, 6); }'
+assert 14  'int add(int a, int b) { return a + b; } int main() { return add(add(1, 2), add(3, 8)); }'
+assert 3   'int id(int x) { int y; y = x; return y; } int main() { return id(3); }'
+assert 55  'int fib(int n) { if (n < 2) return n; return fib(n - 1) + fib(n - 2); } int main() { return fib(10); }'
+assert 120 'int fact(int n) { if (n <= 1) return 1; return n * fact(n - 1); } int main() { return fact(5); }'
+
+echo -e "\n${yel}Testing error cases${rst}"
+assert_error 'int f(int a, int a) { return a; } int main() { return 0; }'
+assert_error 'int f(int a1, int a2, int a3, int a4, int a5, int a6, int a7) { return a1; } int main() { return f(1, 2, 3, 4, 5, 6, 7); }'
+assert_error 'int main() { return f(1,); }'
+
 echo ""
 rm tmp
 

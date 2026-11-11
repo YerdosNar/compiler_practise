@@ -10,7 +10,7 @@ OBJS = $(patsubst src/%.c, build/%.o, $(SRCS))
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-build/%.o: src/%.c 
+build/%.o: src/%.c
 	@mkdir -p build
 	$(CC) $(CFLAGS) -c $< -o $@
 
