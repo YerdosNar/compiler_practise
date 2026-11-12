@@ -33,15 +33,22 @@ static const char *op_symbol(TokenKind k)
 static void print_expr(Expr *e)
 {
         switch (e->kind) {
+                case EXPR_STR:
+                        printf("%.*s\n", (int)e->str.length, e->str.text);
+                        break;
+
                 case EXPR_CALL:
                         printf("%.*s()", (int)e->call.length, e->call.name);
                         break;
+
                 case EXPR_NUMBER:
                         printf("%lld", (long long)e->number);
                         break;
+
                 case EXPR_VAR:
                         printf("%.*s", (int)e->var->length, e->var->name);
                         break;
+
                 case EXPR_BINARY:
                         printf("(%s ", op_symbol(e->binary.op));
                         print_expr(e->binary.left);
@@ -49,6 +56,7 @@ static void print_expr(Expr *e)
                         print_expr(e->binary.right);
                         printf(")");
                         break;
+
                 case EXPR_UNARY:
                         printf("(%s ", op_symbol(e->unary.op));
                         print_expr(e->unary.operand);
