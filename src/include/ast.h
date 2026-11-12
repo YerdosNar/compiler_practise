@@ -8,7 +8,8 @@ typedef enum {
         EXPR_BINARY,
         EXPR_UNARY,
         EXPR_CALL,
-        EXPR_VAR
+        EXPR_VAR,
+        EXPR_STR
 } ExprKind;
 
 typedef struct Var {
@@ -43,6 +44,11 @@ typedef struct Expr {
                         struct Expr *args;
                         u32 nargs;
                 } call;
+
+                struct {
+                        const char *text;
+                        u32 length;
+                } str;
         };
 } Expr;
 
