@@ -150,6 +150,14 @@ static Expr *parse_primary(Parser *p)
                 return e;
         }
 
+        if (check(p, TOK_STRING_LITERAL)) {
+                Token t = advance(p);
+                Expr *e = new_expr(EXPR_STR);
+                e->str.text = t.start;
+                e->str.length = t.length;
+                return e;
+        }
+
         error_at(p->current, "Expected a number or '('");
 }
 
