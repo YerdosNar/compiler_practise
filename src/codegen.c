@@ -84,18 +84,31 @@ static void gen_or(Expr *e)
 static void gen_expr(Expr *e)
 {
         switch (e->kind) {
+        case EXPR_STR: {
+                u32 n = next_label();
+                printf("  .section .rodata\n");
+                printf(".L.str.%u:\n", n);
+                printf("  .string %.*s\n", (int)e->str.length, e->str.text);
+                printf("  .text\n");
+                printf("  lea    rax,  [rip+.L.str.%u]\n", n);
+                return;
+        }
+
         case EXPR_CALL:
                 for (Expr *arg = e->call.args; arg; arg = arg->next) {
                         gen_expr(arg);
                         push();
                 }
+
                 for (int i = (int)e->call.nargs - 1; i >= 0; i--)
                         pop(args_regs[i]);
+
+                printf("  mov    rax,  0\n");
                 if (depth % 2 == 1) {
-                        printf("  sub    rsp, 8\n");
+                        printf("  sub    rsp,  8\n");
                         printf("  call   %.*s\n", (int)e->call.length,
                                                 e->call.name);
-                        printf("  add    rsp, 8\n");
+                        printf("  add    rsp,  8\n");
                 } else {
                         printf("  call   %.*s\n", (int)e->call.length,
                                                 e->call.name);
