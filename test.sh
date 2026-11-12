@@ -202,6 +202,9 @@ assert_output 'ABC'        'int print3(int a, int b, int c) { putchar(a); putcha
 assert_output '0123456789' 'int main() { int i; for (i = 0; i < 10; i = i + 1) putchar(48 + i); return 0; }'
 assert_output 'iH'         'int main() { return putchar(72) + putchar(105) - 177; }'
 
+echo -e "\n${blu}Testing strings${rst}"
+assert_output 'hello'      'int main() { puts("hello"); return 0; }'
+
 echo ""
 rm tmp
 
