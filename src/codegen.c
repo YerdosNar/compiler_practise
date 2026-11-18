@@ -84,6 +84,15 @@ static void gen_or(Expr *e)
 static void gen_expr(Expr *e)
 {
         switch (e->kind) {
+        case EXPR_ADDR:
+                gen_addr(e->unary.operand);
+                return;
+
+        case EXPR_DEREF:
+                gen_expr(e->unary.operand);
+                printf("  mov    rax,  [rax]\n");
+                return;
+
         case EXPR_STR: {
                 u32 n = next_label();
                 printf("  .section .rodata\n");
@@ -257,11 +266,17 @@ static void gen_stmt(Stmt *s)
 
 static void gen_addr(Expr *e)
 {
-        if (e->kind != EXPR_VAR) {
-                fprintf(stderr, "ERROR: left side of '=' is not a variable\n");
+        switch (e->kind) {
+        case EXPR_VAR:
+                printf("  lea    rax,  [rbp-%u]\n", e->var->offset);
+                return;
+        case EXPR_DEREF:
+                gen_expr(e->unary.operand);
+                return;
+        default:
+                fprintf(stderr, "ERROR: expression has no address\n");
                 exit(EXIT_FAILURE);
         }
-        printf("  lea    rax,  [rbp-%u]\n", e->var->offset);
 }
 
 static void gen_assign(Expr *e)
