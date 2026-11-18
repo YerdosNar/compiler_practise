@@ -203,13 +203,27 @@ assert_output '0123456789' 'int main() { int i; for (i = 0; i < 10; i = i + 1) p
 assert_output 'iH'         'int main() { return putchar(72) + putchar(105) - 177; }'
 
 echo -e "\n${blu}Testing strings${rst}"
-assert_output 'hello'      'int main() { puts("hello"); return 0; }'
+assert_output 'hello'     'int main() { puts("hello"); return 0; }'
+assert_output '55'        'int fib(int n) { if (n < 2) return n; return fib(n - 1) + fib(n - 2); } int main() { printf("%d\n", fib(10)); return 0; }'
+assert_output '1 + 2 = 3' 'int main() { printf("%d + %d = %d\n", 1, 2, 1 + 2); return 0; }'
+assert_output 'say "hi"'  'int main() { printf("say \"hi\"\n"); return 0; }'
+assert_output '0,1,4,9,16,' 'int main() { int i; for (i = 0; i < 5; i = i + 1) printf("%d,", i * i); return 0; }'
+
+echo -e "\n${blu}Testing pointers${rst}"
+assert 3  'int main() { int x; int *p; x = 3; p = &x; return *p; }'
+assert 5  'int main() { int x; int *p; x = 3; p = &x; *p = 5; return x; }'
+assert 7  'int main() { int x; int *p; int **pp; x = 7; p = &x; pp = &p; return **pp; }'
+assert 53 'int swap(int *a, int *b) { int t; t = *a; *a = *b; *b = t; return 0; } int main() { int x; int y; x = 3; y = 5; swap(&x, &y); return x * 10 + y; }'
+assert 10 'int set(int *p, int v) { *p = v; return 0; } int main() { int x; set(&x, 10); return x; }'
+assert 12 'int main() { int x; int *p; x = 3; p = &x; return x * *p + 3; }'
+assert_error 'int main() { return &5; }'
+assert_error 'int main() { int x; &x = 1; return 0; }'
 
 echo ""
 rm tmp
 
 if [ $fail -eq 0 ]; then
-        echo -e "${blu}All tests passed${rst}"
+        echo -e "${blu}All tests passed ($pass/$pass)${rst}"
 else
         echo -e "${red}$fail/$((pass+fail)) not passed${rst}"
         exit 1
