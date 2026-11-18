@@ -9,13 +9,21 @@
 #include <string.h>
 
 #ifdef DEBUG
-#define debug(p) \
-        fprintf(stderr, "%s():%d-> (%d,%d):%.*s\n", \
-                        __func__, __LINE__, \
-                        (p)->current.line, (p)->current.col,\
+
+#define RED     "\033[31m"
+#define YELLOW  "\033[33m"
+#define NOC     "\033[0m"
+
+#define debug(in_out, p) \
+        fprintf(stderr, in_out                                  \
+                        YELLOW " %s()" NOC                      \
+                        ":%d-> (%d,%d): "                       \
+                        RED "%.*s\n" NOC,                       \
+                        __func__, __LINE__,                     \
+                        (p)->current.line, (p)->current.col,    \
                         (int)(p)->current.length, (p)->current.start)
 #else
-#define debug(p) ((void)0)
+#define debug(in_out, p) ((void)0)
 #endif
 
 /* Forward declarations */
@@ -136,15 +144,15 @@ static Expr *new_fn_expr(Parser *p, Token t)
 
 static Expr *parse_primary(Parser *p)
 {
-        debug(p);
+        debug("IN ", p);
         if (check(p, TOK_NUMBER)) {
-                debug(p);
+                debug("-  ", p);
                 Token t = advance(p);
                 return new_number(token_to_long(t));
         }
 
         if (check(p, TOK_LPAREN)) {
-                debug(p);
+                debug("-  ", p);
                 advance(p);
                 Expr *e = parse_expr(p);
                 expect(p, TOK_RPAREN, "Expected ')'");
@@ -152,7 +160,7 @@ static Expr *parse_primary(Parser *p)
         }
 
         if (check(p, TOK_IDENTIFIER)) {
-                debug(p);
+                debug("-  ", p);
                 Token t = advance(p);
                 if (check(p, TOK_LPAREN)) return new_fn_expr(p, t);
                 Var *v = find_var(p->locals, t);
@@ -165,7 +173,7 @@ static Expr *parse_primary(Parser *p)
         }
 
         if (check(p, TOK_STRING_LITERAL)) {
-                debug(p);
+                debug("-  ", p);
                 Token t = advance(p);
                 Expr *e = new_expr(EXPR_STR);
                 e->str.text = t.start;
@@ -173,128 +181,141 @@ static Expr *parse_primary(Parser *p)
                 return e;
         }
 
+        debug("OUT", p);
         error_at(p->current, "Expected a number or '('");
 }
 
 static Expr *parse_unary(Parser *p)
 {
-        debug(p);
+        debug("IN ", p);
         if (check(p, TOK_AMP)   ||
             check(p, TOK_STAR))
         {
-                debug(p);
+                debug("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *e = new_expr(op == TOK_AMP ? EXPR_ADDR : EXPR_DEREF);
                 e->unary.operand = parse_unary(p);
                 return e;
         }
-        debug(p);
         if (check(p, TOK_MINUS) ||
             check(p, TOK_PLUS)  ||
             check(p, TOK_NOT))
         {
-                debug(p);
+                debug("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *operand = parse_unary(p);
                 return new_unary(op, operand);
         }
-        debug(p);
+        debug("OUT", p);
         return parse_primary(p);
 }
 
 static Expr *parse_mul(Parser *p)
 {
-        debug(p);
+        debug("IN ", p);
         Expr *left = parse_unary(p);
         while (check(p, TOK_STAR) ||
                check(p, TOK_SLASH) ||
                check(p, TOK_MODULO))
         {
-                debug(p);
+                debug("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_unary(p);
                 left = new_binary(op, left, right);
         }
+        debug("OUT", p);
         return left;
 }
 
 static Expr *parse_add(Parser *p)
 {
-        debug(p);
+        debug("IN ", p);
         Expr *left = parse_mul(p);
         while (check(p, TOK_PLUS) ||
                check(p, TOK_MINUS))
         {
-                debug(p);
+                debug("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_mul(p);
                 left = new_binary(op, left, right);
         }
+        debug("OUT", p);
         return left;
 }
 
 static Expr *parse_relational(Parser *p)
 {
-        debug(p);
+        debug("IN ", p);
         Expr *left = parse_add(p);
         while (check(p, TOK_LT) ||
                check(p, TOK_LE) ||
                check(p, TOK_GT) ||
                check(p, TOK_GE))
         {
-                debug(p);
+                debug("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_add(p);
                 left = new_binary(op, left, right);
         }
+        debug("OUT", p);
         return left;
 }
 
 static Expr *parse_equality(Parser *p)
 {
+        debug("IN ", p);
         Expr *left = parse_relational(p);
         while (check(p, TOK_EQ) ||
                check(p, TOK_NE))
         {
+                debug("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_relational(p);
                 left = new_binary(op, left, right);
         }
+        debug("OUT", p);
         return left;
 }
 
 static Expr *parse_and(Parser *p)
 {
+        debug("IN ", p);
         Expr *left = parse_equality(p);
         while (check(p, TOK_AND)) {
+                debug("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_equality(p);
                 left = new_binary(op, left, right);
         }
+        debug("OUT", p);
         return left;
 }
 
 static Expr *parse_or(Parser *p)
 {
+        debug("IN ", p);
         Expr *left = parse_and(p);
         while (check(p, TOK_OR)) {
+                debug("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_and(p);
                 left = new_binary(op, left, right);
         }
+        debug("OUT", p);
         return left;
 }
 
 static Expr *parse_assign(Parser *p)
 {
-        debug(p);
+        debug("IN ", p);
         Expr *left = parse_or(p);
         if (check(p, TOK_ASSIGN)) {
-                debug(p);
+                debug("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_assign(p);
                 return new_binary(op, left, right);
         }
+        debug("OUT", p);
         return left;
 }
 
@@ -491,14 +512,15 @@ static Function *parse_function(Parser *p, Function *list)
 
 Function *parse(Parser *p)
 {
-        debug(p);
+        debug("IN ", p);
         Function head = {0};
         Function *cur = &head;
         while (!check(p, TOK_EOF)) {
-                debug(p);
+                debug("-  ", p);
                 cur->next = parse_function(p, head.next);
                 cur = cur->next;
         }
+        debug("OUT", p);
         return head.next;
 }
 
