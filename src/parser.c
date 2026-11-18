@@ -8,6 +8,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef DEBUG
+#define debug(p) \
+        fprintf(stderr, "%s():%d-> (%d,%d):%.*s\n", \
+                        __func__, __LINE__, \
+                        (p)->current.line, (p)->current.col,\
+                        (int)(p)->current.length, (p)->current.start)
+#else
+#define debug(p) ((void)0)
+#endif
+
 /* Forward declarations */
 static Stmt *parse_block(Parser *p);
 static Stmt *parse_stmt(Parser *p);
@@ -126,12 +136,15 @@ static Expr *new_fn_expr(Parser *p, Token t)
 
 static Expr *parse_primary(Parser *p)
 {
+        debug(p);
         if (check(p, TOK_NUMBER)) {
+                debug(p);
                 Token t = advance(p);
                 return new_number(token_to_long(t));
         }
 
         if (check(p, TOK_LPAREN)) {
+                debug(p);
                 advance(p);
                 Expr *e = parse_expr(p);
                 expect(p, TOK_RPAREN, "Expected ')'");
@@ -139,6 +152,7 @@ static Expr *parse_primary(Parser *p)
         }
 
         if (check(p, TOK_IDENTIFIER)) {
+                debug(p);
                 Token t = advance(p);
                 if (check(p, TOK_LPAREN)) return new_fn_expr(p, t);
                 Var *v = find_var(p->locals, t);
@@ -151,6 +165,7 @@ static Expr *parse_primary(Parser *p)
         }
 
         if (check(p, TOK_STRING_LITERAL)) {
+                debug(p);
                 Token t = advance(p);
                 Expr *e = new_expr(EXPR_STR);
                 e->str.text = t.start;
@@ -163,24 +178,39 @@ static Expr *parse_primary(Parser *p)
 
 static Expr *parse_unary(Parser *p)
 {
+        debug(p);
+        if (check(p, TOK_AMP)   ||
+            check(p, TOK_STAR))
+        {
+                debug(p);
+                TokenKind op = advance(p).tok_kind;
+                Expr *e = new_expr(op == TOK_AMP ? EXPR_ADDR : EXPR_DEREF);
+                e->unary.operand = parse_unary(p);
+                return e;
+        }
+        debug(p);
         if (check(p, TOK_MINUS) ||
             check(p, TOK_PLUS)  ||
             check(p, TOK_NOT))
         {
+                debug(p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *operand = parse_unary(p);
                 return new_unary(op, operand);
         }
+        debug(p);
         return parse_primary(p);
 }
 
 static Expr *parse_mul(Parser *p)
 {
+        debug(p);
         Expr *left = parse_unary(p);
         while (check(p, TOK_STAR) ||
                check(p, TOK_SLASH) ||
                check(p, TOK_MODULO))
         {
+                debug(p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_unary(p);
                 left = new_binary(op, left, right);
@@ -190,10 +220,12 @@ static Expr *parse_mul(Parser *p)
 
 static Expr *parse_add(Parser *p)
 {
+        debug(p);
         Expr *left = parse_mul(p);
         while (check(p, TOK_PLUS) ||
                check(p, TOK_MINUS))
         {
+                debug(p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_mul(p);
                 left = new_binary(op, left, right);
@@ -203,12 +235,14 @@ static Expr *parse_add(Parser *p)
 
 static Expr *parse_relational(Parser *p)
 {
+        debug(p);
         Expr *left = parse_add(p);
         while (check(p, TOK_LT) ||
                check(p, TOK_LE) ||
                check(p, TOK_GT) ||
                check(p, TOK_GE))
         {
+                debug(p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_add(p);
                 left = new_binary(op, left, right);
@@ -253,8 +287,10 @@ static Expr *parse_or(Parser *p)
 
 static Expr *parse_assign(Parser *p)
 {
+        debug(p);
         Expr *left = parse_or(p);
         if (check(p, TOK_ASSIGN)) {
+                debug(p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_assign(p);
                 return new_binary(op, left, right);
@@ -339,6 +375,7 @@ static Stmt *parse_if(Parser *p)
 static Stmt *parse_int(Parser *p)
 {
         advance(p);
+        while (check(p, TOK_STAR)) advance(p); /* 'int *p' is just 'int p' for now */
         Token name = p->current;
         expect(p, TOK_IDENTIFIER, "Expected variable name after 'int'");
         declare_var(p, name);
@@ -415,6 +452,7 @@ static Function *find_function(Function *list, Token name)
 static Function *parse_function(Parser *p, Function *list)
 {
         expect(p, TOK_KW_INT, "Expected 'int' before function name");
+        while (check(p, TOK_STAR)) advance(p); /* 'int *p' is just 'int p' for now */
         Token name = p->current;
         expect(p, TOK_IDENTIFIER, "Expected function name");
         if (find_function(list, name))
@@ -437,6 +475,7 @@ static Function *parse_function(Parser *p, Function *list)
                                  fn->nparams);
                 expect(p, TOK_KW_INT,
                        "Expected 'int' before parameter name");
+                while (check(p, TOK_STAR)) advance(p); /* 'int *p' is just 'int p' for now */
                 Token param = p->current;
                 expect(p, TOK_IDENTIFIER, "Extected parameter name");
                 fn->params[fn->nparams++] = declare_var(p, param);
@@ -452,9 +491,11 @@ static Function *parse_function(Parser *p, Function *list)
 
 Function *parse(Parser *p)
 {
+        debug(p);
         Function head = {0};
         Function *cur = &head;
         while (!check(p, TOK_EOF)) {
+                debug(p);
                 cur->next = parse_function(p, head.next);
                 cur = cur->next;
         }
