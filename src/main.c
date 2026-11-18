@@ -33,6 +33,16 @@ static const char *op_symbol(TokenKind k)
 static void print_expr(Expr *e)
 {
         switch (e->kind) {
+                case EXPR_ADDR:
+                        printf("%s\n", op_symbol(e->unary.op));
+                        print_expr(e->unary.operand);
+                        break;
+
+                case EXPR_DEREF:
+                        printf("%s\n", op_symbol(e->unary.op));
+                        print_expr(e->unary.operand);
+                        break;
+
                 case EXPR_STR:
                         printf("%.*s\n", (int)e->str.length, e->str.text);
                         break;
