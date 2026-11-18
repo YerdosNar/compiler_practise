@@ -9,7 +9,9 @@ typedef enum {
         EXPR_UNARY,
         EXPR_CALL,
         EXPR_VAR,
-        EXPR_STR
+        EXPR_STR,
+        EXPR_ADDR,
+        EXPR_DEREF,
 } ExprKind;
 
 typedef struct Var {
