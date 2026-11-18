@@ -20,4 +20,4 @@ test: $(TARGET)
 	./test.sh
 
 clean:
-	rm -rf build $(TARGET) tmp*
+	rm -rf build $(TARGET) tmp* *.s
