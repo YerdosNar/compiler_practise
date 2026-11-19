@@ -216,8 +216,23 @@ assert 7  'int main() { int x; int *p; int **pp; x = 7; p = &x; pp = &p; return 
 assert 53 'int swap(int *a, int *b) { int t; t = *a; *a = *b; *b = t; return 0; } int main() { int x; int y; x = 3; y = 5; swap(&x, &y); return x * 10 + y; }'
 assert 10 'int set(int *p, int v) { *p = v; return 0; } int main() { int x; set(&x, 10); return x; }'
 assert 12 'int main() { int x; int *p; x = 3; p = &x; return x * *p + 3; }'
+
+echo -e "\n${yel}Testing error cases${rst}"
 assert_error 'int main() { return &5; }'
 assert_error 'int main() { int x; &x = 1; return 0; }'
+
+echo -e "\n${blu}Testing pointer arithmetic${rst}"
+assert 3 'int main() { int a; int b; a = 3; b = 5; return *(&b + 1); }'
+assert 3 'int main() { int a; int b; a = 3; b = 5; return *(1 + &b); }'
+assert 5 'int main() { int a; int b; a = 3; b = 5; return *(&a - 1); }'
+assert 1 'int main() { int a; int b; return &a - &b; }'
+assert 7 'int main() { int a; int b; int *p; p = &b; *(p + 1) = 7; return a; }'
+assert 9 'int main() { int a; int b; int c; int *p; a = 9; p = &c; p = p + 2; return *p; }'
+
+echo -e "\n${yel}Testing error cases${rst}"
+assert_error 'int main() { int x; return *x; }'
+assert_error 'int main() { int a; int b; return &a + &b; }'
+assert_error 'int main() { int x; return 1 - &x; }'
 
 echo ""
 rm tmp
