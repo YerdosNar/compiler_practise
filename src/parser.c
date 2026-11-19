@@ -14,10 +14,20 @@
 #define YELLOW  "\033[33m"
 #define NOC     "\033[0m"
 
-#define debug(in_out, p) do {                                   \
+#define IN      "IN"
+#define OUT     "OUT"
+#define INSIDE  "-"
+
+#define debug(in_out) do {                                      \
         fprintf(stderr, "%-6s|", in_out);                       \
-        fprintf(stderr, YELLOW "%-17s|" NOC, __func__);         \
-        fprintf(stderr, "%-4d|%-4d,%-3d|", __LINE__,            \
+        fprintf(stderr, YELLOW "%-17s" NOC, __func__);          \
+        fprintf(stderr, "|%-4d|\n", __LINE__);                  \
+} while (0)
+
+#define debug_Parser(in_out, p) do {                            \
+        fprintf(stderr, "%-6s|", in_out);                       \
+        fprintf(stderr, YELLOW "%-17s" NOC, __func__);          \
+        fprintf(stderr, "|%-4d|%-4d,%-3d|", __LINE__,           \
                         (p)->current.line, (p)->current.col);   \
         fprintf(stderr, RED "%.*s\n" NOC,                       \
                         (int)(p)->current.length,               \
@@ -25,7 +35,8 @@
 } while (0)
 
 #else
-#define debug(in_out, p) ((void)0)
+#define debug(in_out)           ((void)0)
+#define debug_Parser(in_out, p) ((void)0)
 #endif
 
 /* Forward declarations */
@@ -36,11 +47,13 @@ static Function *find_function(Function *list, Token name);
 
 static void *check_calloc(size_t size, const char *msg)
 {
+        debug(IN);
         void *ptr = calloc(1, size);
         if (!ptr) {
                 perror(msg);
                 exit(EXIT_FAILURE);
         }
+        debug(OUT);
         return ptr;
 }
 
@@ -48,8 +61,10 @@ static bool check(Parser *p, TokenKind k) {return p->current.tok_kind == k;}
 
 static Token advance(Parser *p)
 {
+        debug(IN);
         Token prev = p->current;
         p->current = lexer_next(p->lx);
+        debug(OUT);
         return prev;
 }
 
@@ -68,58 +83,99 @@ static _Noreturn void error_at(Token t, const char *fmt, ...)
 
 static void expect(Parser *p, TokenKind kind, const char *msg)
 {
+        debug(IN);
         Token t = p->current;
         if (t.tok_kind != kind) error_at(t, msg);
         advance(p);
+        debug(OUT);
 }
 
 static i64 token_to_long(Token t)
 {
+        debug(IN);
         i64 n = 0;
         for (u32 i = 0; i < t.length; i++) n = n * 10 + (t.start[i] - '0');
+        debug(OUT);
         return n;
+}
+
+static Type ty_int_storage = { TY_INT, NULL };
+static Type *ty_int = &ty_int_storage;
+
+static Type *pointer_to(Type *base)
+{
+        debug(IN);
+        Type *t = check_calloc(sizeof(Type), "Type");
+        t->kind = TY_PTR;
+        t->base = base;
+        debug(OUT);
+        return t;
+}
+
+static bool is_ptr(Type *t) { return t->kind == TY_PTR; }
+
+static u32 size_of(Type *t)
+{
+        debug(IN);
+        (void)t;
+        debug(OUT);
+        return 8; /* int and ptr are 8 bytes for now */
 }
 
 static Expr *new_expr(ExprKind kind)
 {
+        debug(IN);
         Expr *e = check_calloc(sizeof(Expr), "Expr");
         e->kind = kind;
+        debug(OUT);
         return e;
 }
 
 static Stmt *new_stmt(StmtKind sk)
 {
+        debug(IN);
         Stmt *st = check_calloc(sizeof(Stmt), "Stmt");
         st->kind = sk;
+        debug(OUT);
         return st;
 }
 
 static Expr *new_number(i64 value)
 {
+        debug(IN);
         Expr *e = new_expr(EXPR_NUMBER);
         e->number = value;
+        e->type = ty_int;
+        debug(OUT);
         return e;
 }
 
 static Expr *new_binary(TokenKind op, Expr *left, Expr *right)
 {
+        debug(IN);
         Expr *e = new_expr(EXPR_BINARY);
         e->binary.op = op;
         e->binary.left = left;
         e->binary.right = right;
+        e->type = (op == TOK_ASSIGN) ? left->type : ty_int;
+        debug(OUT);
         return e;
 }
 
 static Expr *new_unary(TokenKind op, Expr *operand)
 {
+        debug(IN);
         Expr *e = new_expr(EXPR_UNARY);
         e->unary.op      = op;
         e->unary.operand = operand;
+        e->type = ty_int;
+        debug(OUT);
         return e;
 }
 
 static Expr *new_fn_expr(Parser *p, Token t)
 {
+        debug(IN);
         advance(p);
         Expr *e = new_expr(EXPR_CALL);
         e->call.name   = t.start;
@@ -128,6 +184,7 @@ static Expr *new_fn_expr(Parser *p, Token t)
         Expr head = {0};
         Expr *cur = &head;
         while (!check(p, TOK_RPAREN)) {
+                debug("-");
                 if (e->call.nargs > 0)
                         expect(p, TOK_COMMA,
                                 "Expected ',' between args");
@@ -141,20 +198,37 @@ static Expr *new_fn_expr(Parser *p, Token t)
         }
         advance(p);
         e->call.args = head.next;
+        e->type = ty_int;
+        debug(OUT);
+
         return e;
+}
+
+static Type *parse_type(Parser *p)
+{
+        debug_Parser(IN, p);
+        expect(p, TOK_KW_INT, "Expected 'int'");
+        Type *ty = ty_int;
+        while (check(p, TOK_STAR)) {
+                debug_Parser("-", p);
+                advance(p);
+                ty = pointer_to(ty);
+        }
+        debug_Parser("OUT", p);
+        return ty;
 }
 
 static Expr *parse_primary(Parser *p)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         if (check(p, TOK_NUMBER)) {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 Token t = advance(p);
                 return new_number(token_to_long(t));
         }
 
         if (check(p, TOK_LPAREN)) {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 advance(p);
                 Expr *e = parse_expr(p);
                 expect(p, TOK_RPAREN, "Expected ')'");
@@ -162,7 +236,7 @@ static Expr *parse_primary(Parser *p)
         }
 
         if (check(p, TOK_IDENTIFIER)) {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 Token t = advance(p);
                 if (check(p, TOK_LPAREN)) return new_fn_expr(p, t);
                 Var *v = find_var(p->locals, t);
@@ -170,154 +244,212 @@ static Expr *parse_primary(Parser *p)
                             (int)t.length,
                                  t.start);
                 Expr *e = new_expr(EXPR_VAR);
+                e->type = v->type;
                 e->var = v;
                 return e;
         }
 
         if (check(p, TOK_STRING_LITERAL)) {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 Token t = advance(p);
                 Expr *e = new_expr(EXPR_STR);
                 e->str.text = t.start;
                 e->str.length = t.length;
+                e->type = pointer_to(ty_int);
                 return e;
         }
 
-        debug("OUT", p);
+        debug_Parser("OUT", p);
         error_at(p->current, "Expected a number or '('");
 }
 
 static Expr *parse_unary(Parser *p)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         if (check(p, TOK_AMP)   ||
             check(p, TOK_STAR))
         {
-                debug("-  ", p);
-                TokenKind op = advance(p).tok_kind;
-                Expr *e = new_expr(op == TOK_AMP ? EXPR_ADDR : EXPR_DEREF);
-                e->unary.operand = parse_unary(p);
+                debug_Parser("-  ", p);
+                Token op = advance(p);
+                Expr *operand = parse_unary(p);
+
+                if (op.tok_kind == TOK_AMP) {
+                        Expr *e = new_expr(EXPR_ADDR);
+                        e->unary.operand = operand;
+                        e->type = pointer_to(operand->type);
+                        return e;
+                }
+
+                if (!is_ptr(operand->type))
+                        error_at(op, "Cannot dereference a non-pointer");
+                Expr *e = new_expr(EXPR_DEREF);
+                e->unary.operand = operand;
+                e->type = operand->type->base;
                 return e;
         }
+
         if (check(p, TOK_MINUS) ||
             check(p, TOK_PLUS)  ||
             check(p, TOK_NOT))
         {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *operand = parse_unary(p);
                 return new_unary(op, operand);
         }
-        debug("OUT", p);
+
+        debug_Parser("OUT", p);
         return parse_primary(p);
 }
 
 static Expr *parse_mul(Parser *p)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         Expr *left = parse_unary(p);
         while (check(p, TOK_STAR) ||
                check(p, TOK_SLASH) ||
                check(p, TOK_MODULO))
         {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_unary(p);
                 left = new_binary(op, left, right);
         }
-        debug("OUT", p);
+        debug_Parser("OUT", p);
         return left;
+}
+
+static Expr *new_add(Token op, Expr *left, Expr *right)
+{
+        if (is_ptr(right->type)) { /* 1 + p is the same as p+1 */
+                Expr *tmp = left;
+                left = right;
+                right = tmp;
+        }
+        if (!is_ptr(left->type)) /* int + int */
+                return new_binary(TOK_PLUS, left, right);
+        if (is_ptr(right->type))
+                error_at(op, "Cannot add two pointers");
+
+        /* pointer + int: move by whole elements, not bytes */
+        Expr *scaled = new_binary(TOK_STAR, right,
+                                  new_number(size_of(left->type->base)));
+        Expr *e = new_binary(TOK_PLUS, left, scaled);
+        e->type = left->type;
+        return e;
+}
+
+static Expr *new_sub(Token op, Expr *left, Expr *right)
+{
+        if (!is_ptr(left->type)) {
+                if (is_ptr(right->type))
+                        error_at(op,
+                                "Cannot subtract a pointer from an integer");
+                return new_binary(TOK_MINUS, left, right); /* int - int */
+        }
+
+        u32 size = size_of(left->type->base);
+        if (is_ptr(right->type)) { /* pointer - pointer: elements apart */
+                Expr *bytes = new_binary(TOK_MINUS, left, right);
+                return new_binary(TOK_SLASH, bytes, new_number(size));
+        }
+
+        Expr *scaled = new_binary(TOK_STAR, right, new_number(size));
+        Expr *e = new_binary(TOK_MINUS, left, scaled);
+        e->type = left->type;
+        return e;
 }
 
 static Expr *parse_add(Parser *p)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         Expr *left = parse_mul(p);
         while (check(p, TOK_PLUS) ||
                check(p, TOK_MINUS))
         {
-                debug("-  ", p);
-                TokenKind op = advance(p).tok_kind;
+                debug_Parser("-  ", p);
+                Token op = advance(p);
                 Expr *right = parse_mul(p);
-                left = new_binary(op, left, right);
+                left = (op.tok_kind == TOK_PLUS) ? new_add(op, left, right)
+                                                 : new_sub(op, left, right);
         }
-        debug("OUT", p);
+        debug_Parser("OUT", p);
         return left;
 }
 
 static Expr *parse_relational(Parser *p)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         Expr *left = parse_add(p);
         while (check(p, TOK_LT) ||
                check(p, TOK_LE) ||
                check(p, TOK_GT) ||
                check(p, TOK_GE))
         {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_add(p);
                 left = new_binary(op, left, right);
         }
-        debug("OUT", p);
+        debug_Parser("OUT", p);
         return left;
 }
 
 static Expr *parse_equality(Parser *p)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         Expr *left = parse_relational(p);
         while (check(p, TOK_EQ) ||
                check(p, TOK_NE))
         {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_relational(p);
                 left = new_binary(op, left, right);
         }
-        debug("OUT", p);
+        debug_Parser("OUT", p);
         return left;
 }
 
 static Expr *parse_and(Parser *p)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         Expr *left = parse_equality(p);
         while (check(p, TOK_AND)) {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_equality(p);
                 left = new_binary(op, left, right);
         }
-        debug("OUT", p);
+        debug_Parser("OUT", p);
         return left;
 }
 
 static Expr *parse_or(Parser *p)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         Expr *left = parse_and(p);
         while (check(p, TOK_OR)) {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_and(p);
                 left = new_binary(op, left, right);
         }
-        debug("OUT", p);
+        debug_Parser("OUT", p);
         return left;
 }
 
 static Expr *parse_assign(Parser *p)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         Expr *left = parse_or(p);
         if (check(p, TOK_ASSIGN)) {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 TokenKind op = advance(p).tok_kind;
                 Expr *right = parse_assign(p);
                 return new_binary(op, left, right);
         }
-        debug("OUT", p);
+        debug_Parser("OUT", p);
         return left;
 }
 
@@ -334,7 +466,7 @@ static Var *find_var(Var *list, Token name)
         return NULL;
 }
 
-static Var *declare_var(Parser *p, Token name)
+static Var *declare_var(Parser *p, Token name, Type *type)
 {
         if (find_var(p->locals, name))
                 error_at(name, "Redeclared variable: '%.*s'",
@@ -346,6 +478,7 @@ static Var *declare_var(Parser *p, Token name)
         v->length = name.length;
         v->offset = (p->locals ? p->locals->offset : 0) + 8;
         v->next   = p->locals;
+        v->type   = type;
         p->locals = v;
         return v;
 }
@@ -397,11 +530,10 @@ static Stmt *parse_if(Parser *p)
 
 static Stmt *parse_int(Parser *p)
 {
-        advance(p);
-        while (check(p, TOK_STAR)) advance(p); /* 'int *p' is just 'int p' for now */
+        Type *ty = parse_type(p);
         Token name = p->current;
         expect(p, TOK_IDENTIFIER, "Expected variable name after 'int'");
-        declare_var(p, name);
+        declare_var(p, name, ty);
         expect(p, TOK_SEMICOLON, "Expected ';' after declaration");
         return new_stmt(STMT_BLOCK);
 }
@@ -474,19 +606,19 @@ static Function *find_function(Function *list, Token name)
 
 static Function *parse_function(Parser *p, Function *list)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         expect(p, TOK_KW_INT, "Expected 'int' before function name");
-        debug("-", p);
+        debug_Parser("-", p);
         while (check(p, TOK_STAR)) advance(p); /* 'int *p' is just 'int p' for now */
-        debug("-", p);
+        debug_Parser("-", p);
         Token name = p->current;
         expect(p, TOK_IDENTIFIER, "Expected function name");
-        debug("-", p);
+        debug_Parser("-", p);
         if (find_function(list, name))
                 error_at(name, "Redefinition of function '%.*s'",
                          (int)name.length, name.start);
         expect(p, TOK_LPAREN, "Expected '(' after function name");
-        debug("-", p);
+        debug_Parser("-", p);
 
         p->locals    = NULL;
         Function *fn = check_calloc(sizeof(Function), "Function");
@@ -494,7 +626,7 @@ static Function *parse_function(Parser *p, Function *list)
         fn->length   = name.length;
 
         while (!check(p, TOK_RPAREN)) {
-                debug("-", p);
+                debug_Parser("-", p);
                 if (fn->nparams > 0)
                         expect(p, TOK_COMMA,
                                "Expected ',' between parameters");
@@ -502,12 +634,10 @@ static Function *parse_function(Parser *p, Function *list)
                         error_at(p->current,
                                  "Too many parameters: %u (max 6)",
                                  fn->nparams);
-                expect(p, TOK_KW_INT,
-                       "Expected 'int' before parameter name");
-                while (check(p, TOK_STAR)) advance(p); /* 'int *p' is just 'int p' for now */
+                Type *ty = parse_type(p);
                 Token param = p->current;
                 expect(p, TOK_IDENTIFIER, "Extected parameter name");
-                fn->params[fn->nparams++] = declare_var(p, param);
+                fn->params[fn->nparams++] = declare_var(p, param, ty);
         }
         advance(p);
 
@@ -515,21 +645,21 @@ static Function *parse_function(Parser *p, Function *list)
         fn->locals = p->locals;
         fn->stack_size = p->locals ? p->locals->offset : 0;
 
-        debug("OUT", p);
+        debug_Parser("OUT", p);
         return fn;
 }
 
 Function *parse(Parser *p)
 {
-        debug("IN ", p);
+        debug_Parser("IN ", p);
         Function head = {0};
         Function *cur = &head;
         while (!check(p, TOK_EOF)) {
-                debug("-  ", p);
+                debug_Parser("-  ", p);
                 cur->next = parse_function(p, head.next);
                 cur = cur->next;
         }
-        debug("OUT", p);
+        debug_Parser("OUT", p);
         return head.next;
 }
 
