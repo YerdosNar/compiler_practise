@@ -7,6 +7,13 @@
 #include <stdbool.h>
 #include <string.h>
 
+#ifdef DEBUG
+#define print_hdr()\
+        fprintf(stderr, "IN/OUT|function name    |line|row,col |token\n");
+#else
+#define print_hdr() ((void)0);
+#endif
+
 static const char *op_symbol(TokenKind k)
 {
         switch (k) {
@@ -91,6 +98,7 @@ int main(int argc, char **argv) {
         Lexer lx;lexer_init(&lx, src);
         Parser p;parser_init(&p,&lx);
 
+        print_hdr();
         if (ast_mode) {
                 print_expr(parse_expr(&p));
                 printf("\n");
