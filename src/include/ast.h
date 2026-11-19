@@ -14,9 +14,20 @@ typedef enum {
         EXPR_DEREF,
 } ExprKind;
 
+typedef enum {
+        TY_INT,
+        TY_PTR
+} TypeKind;
+
+typedef struct Type {
+        TypeKind kind;
+        struct Type *base;
+} Type;
+
 typedef struct Var {
         struct Var *next;
         TokenKind kind;
+        Type *type;
         const char *name;
         u32 length;
         u32 offset;
@@ -24,6 +35,7 @@ typedef struct Var {
 
 typedef struct Expr {
         ExprKind kind;
+        Type *type;
         struct Expr *next;
         union {
                 i64 number;
