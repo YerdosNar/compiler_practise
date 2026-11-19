@@ -14,14 +14,16 @@
 #define YELLOW  "\033[33m"
 #define NOC     "\033[0m"
 
-#define debug(in_out, p) \
-        fprintf(stderr, in_out                                  \
-                        YELLOW " %s()" NOC                      \
-                        ":%d-> (%d,%d): "                       \
-                        RED "%.*s\n" NOC,                       \
-                        __func__, __LINE__,                     \
-                        (p)->current.line, (p)->current.col,    \
-                        (int)(p)->current.length, (p)->current.start)
+#define debug(in_out, p) do {                                   \
+        fprintf(stderr, "%-6s|", in_out);                       \
+        fprintf(stderr, YELLOW "%-17s|" NOC, __func__);         \
+        fprintf(stderr, "%-4d|%-4d,%-3d|", __LINE__,            \
+                        (p)->current.line, (p)->current.col);   \
+        fprintf(stderr, RED "%.*s\n" NOC,                       \
+                        (int)(p)->current.length,               \
+                        (p)->current.start);                    \
+} while (0)
+
 #else
 #define debug(in_out, p) ((void)0)
 #endif
@@ -472,14 +474,19 @@ static Function *find_function(Function *list, Token name)
 
 static Function *parse_function(Parser *p, Function *list)
 {
+        debug("IN ", p);
         expect(p, TOK_KW_INT, "Expected 'int' before function name");
+        debug("-", p);
         while (check(p, TOK_STAR)) advance(p); /* 'int *p' is just 'int p' for now */
+        debug("-", p);
         Token name = p->current;
         expect(p, TOK_IDENTIFIER, "Expected function name");
+        debug("-", p);
         if (find_function(list, name))
                 error_at(name, "Redefinition of function '%.*s'",
                          (int)name.length, name.start);
         expect(p, TOK_LPAREN, "Expected '(' after function name");
+        debug("-", p);
 
         p->locals    = NULL;
         Function *fn = check_calloc(sizeof(Function), "Function");
@@ -487,6 +494,7 @@ static Function *parse_function(Parser *p, Function *list)
         fn->length   = name.length;
 
         while (!check(p, TOK_RPAREN)) {
+                debug("-", p);
                 if (fn->nparams > 0)
                         expect(p, TOK_COMMA,
                                "Expected ',' between parameters");
@@ -507,6 +515,7 @@ static Function *parse_function(Parser *p, Function *list)
         fn->locals = p->locals;
         fn->stack_size = p->locals ? p->locals->offset : 0;
 
+        debug("OUT", p);
         return fn;
 }
 
