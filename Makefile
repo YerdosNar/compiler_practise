@@ -14,6 +14,8 @@ build/%.o: src/%.c
 	@mkdir -p build
 	$(CC) $(CFLAGS) -c $< -o $@
 
+-include $(OBJS:.o=.d)
+
 .PHONY: clean test debug help
 
 help:
