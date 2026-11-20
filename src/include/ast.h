@@ -16,12 +16,14 @@ typedef enum {
 
 typedef enum {
         TY_INT,
+        TY_ARRAY,
         TY_PTR
 } TypeKind;
 
 typedef struct Type {
         TypeKind kind;
         struct Type *base;
+        u32 array_len;
 } Type;
 
 typedef struct Var {
