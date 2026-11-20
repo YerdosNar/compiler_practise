@@ -234,6 +234,21 @@ assert_error 'int main() { int x; return *x; }'
 assert_error 'int main() { int a; int b; return &a + &b; }'
 assert_error 'int main() { int x; return 1 - &x; }'
 
+echo -e "\n${blu}Testing arrays${rst}"
+assert 3  'int main() { int a[3]; a[0] = 1; a[1] = 2; a[2] = 3; return a[2]; }'
+assert 6  'int main() { int a[3]; a[0] = 1; a[1] = 2; a[2] = 3; return a[0] + a[1] + a[2]; }'
+assert 45 'int main() { int a[10]; int i; int s; for (i = 0; i < 10; i = i + 1) a[i] = i; s = 0; for (i = 0; i < 10; i = i + 1) s = s + a[i]; return s; }'
+assert 5  'int main() { int a[2]; int *p; p = a; *(p + 1) = 5; return a[1]; }'
+assert 2  'int main() { int a[3]; return &a[2] - &a[0]; }'
+assert 15 'int sum(int *a, int n) { int i; int s; s = 0; for (i = 0; i < n; i = i + 1) s = s + a[i]; return s; } int main() { int a[5]; int i; for (i = 0; i < 5; i = i + 1) a[i] = i + 1; return sum(a, 5); }'
+assert 16 'int main() { int x; int a[3]; int y; x = 7; y = 9; a[0] = 0; a[1] = 0; a[2] = 0; return x + y; }'
+assert 4  'int main() { int a[3]; a[1] = 4; return 1[a]; }'
+
+echo -e "\n${yel}Testing error cases${rst}"
+assert_error 'int main() { int a[3]; int b[3]; a = b; return 0; }'
+assert_error 'int main() { int a[3]; return a[1; }'
+assert_error 'int main() { int x; return x[0]; }'
+
 echo ""
 rm tmp
 
