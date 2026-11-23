@@ -17,6 +17,7 @@ typedef enum {
 typedef enum {
         TY_INT,
         TY_ARRAY,
+        TY_CHAR,
         TY_PTR
 } TypeKind;
 
