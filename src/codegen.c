@@ -18,6 +18,32 @@ static const char *args_regs[] = {
         "r8",
         "r9"
 };
+static const char *args_regs8[] = {
+        "dil",
+        "sil",
+        "dl",
+        "cl",
+        "r8b",
+        "r9b"
+};
+
+/* Load the value at the address in RAX, into RAX */
+static void load(Type *ty)
+{
+        if (ty->kind == TY_CHAR)
+                printf("  movsx  rax,  byte ptr [rax]\n");
+        else
+                printf("  mov    rax,  [rax]\n");
+}
+
+/* Store RAX at the address in RDI */
+static void store(Type *ty)
+{
+        if (ty->kind == TY_CHAR)
+                printf("  mov    [rdi], al\n");
+        else
+                printf("  mov    [rdi], rax\n");
+}
 
 static u32 depth = 0; /* values currently pushed by expression code */
 
@@ -90,7 +116,7 @@ static void gen_expr(Expr *e)
 
         case EXPR_DEREF:
                 gen_expr(e->unary.operand);
-                printf("  mov    rax,  [rax]\n");
+                load(e->type);
                 return;
 
         case EXPR_STR: {
@@ -130,7 +156,7 @@ static void gen_expr(Expr *e)
 
         case EXPR_VAR:
                 gen_addr(e);
-                printf("  mov    rax,  [rax]\n");
+                load(e->type);
                 return;
 
         case EXPR_UNARY:
@@ -285,7 +311,7 @@ static void gen_assign(Expr *e)
         push();
         gen_expr(e->binary.right);
         pop("rdi");
-        printf("  mov    [rdi],  rax\n");
+        store(e->binary.left->type);
 }
 
 void codegen(Function *prog)
@@ -302,9 +328,14 @@ void codegen(Function *prog)
                 printf("  mov    rbp,  rsp\n");
                 printf("  sub    rsp,  %u\n",
                        (fn->stack_size + 15) / 16 * 16);
-                for (u32 i = 0; i < fn->nparams; i++)
+                for (u32 i = 0; i < fn->nparams; i++) {
+                        Var *v = fn->params[i];
+                        const char *reg = (v->type->kind == TY_CHAR)
+                                                ? args_regs8[i]
+                                                : args_regs[i];
                         printf("  mov    [rbp-%u], %s\n",
-                               fn->params[i]->offset, args_regs[i]);
+                               fn->params[i]->offset, reg);
+                }
                 gen_stmt(fn->body);
                 printf("  mov    rax,  0\n");
                 printf(".L.return.%.*s:\n", len, fn->name);
