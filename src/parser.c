@@ -24,6 +24,15 @@
         fprintf(stderr, "|%-4d|\n", __LINE__);                  \
 } while (0)
 
+#define debug_Token(in_out, t) do {                             \
+        fprintf(stderr, "%-6s|", in_out);                       \
+        fprintf(stderr, YELLOW "%-17s" NOC, __func__);          \
+        fprintf(stderr, "|%-4d|%-4d,%-3d|", __LINE__,           \
+                        (t).line, (t).col);                     \
+        fprintf(stderr, RED "%.*s\n" NOC,                       \
+                        (int)(t).length, (t).start);            \
+} while (0)
+
 #define debug_Parser(in_out, p) do {                            \
         fprintf(stderr, "%-6s|", in_out);                       \
         fprintf(stderr, YELLOW "%-17s" NOC, __func__);          \
@@ -36,6 +45,7 @@
 
 #else
 #define debug(in_out)           ((void)0)
+#define debug_Token(in_out, t)  ((void)0)
 #define debug_Parser(in_out, p) ((void)0)
 #endif
 
@@ -62,10 +72,10 @@ static bool check(Parser *p, TokenKind k) {return p->current.tok_kind == k;}
 
 static Token advance(Parser *p)
 {
-        debug(IN);
+        debug_Parser(IN, p);
         Token prev = p->current;
         p->current = lexer_next(p->lx);
-        debug(OUT);
+        debug_Parser(OUT, p);
         return prev;
 }
 
@@ -93,15 +103,18 @@ static void expect(Parser *p, TokenKind kind, const char *msg)
 
 static i64 token_to_long(Token t)
 {
-        debug(IN);
+        debug_Token(IN, t);
         i64 n = 0;
         for (u32 i = 0; i < t.length; i++) n = n * 10 + (t.start[i] - '0');
-        debug(OUT);
+        debug_Token(OUT, t);
         return n;
 }
 
 static Type ty_int_storage = { TY_INT, NULL, 0 };
 static Type *ty_int = &ty_int_storage;
+
+static Type ty_char_storage = { TY_CHAR, NULL, 0 };
+static Type *ty_char = &ty_char_storage;
 
 static Type *pointer_to(Type *base)
 {
@@ -131,6 +144,8 @@ static u32 size_of(Type *t)
         debug(IN);
         if (t->kind == TY_ARRAY)
                 return t->array_len * size_of(t->base);
+        if (t->kind == TY_CHAR)
+                return 1;
         debug(OUT);
         return 8; /* int and ptr are 8 bytes for now */
 }
@@ -188,7 +203,7 @@ static Expr *new_unary(TokenKind op, Expr *operand)
 
 static Expr *new_fn_expr(Parser *p, Token t)
 {
-        debug(IN);
+        debug_Token(IN, t);
         advance(p);
         Expr *e = new_expr(EXPR_CALL);
         e->call.name   = t.start;
@@ -197,7 +212,7 @@ static Expr *new_fn_expr(Parser *p, Token t)
         Expr head = {0};
         Expr *cur = &head;
         while (!check(p, TOK_RPAREN)) {
-                debug(INSIDE);
+                debug_Token(INSIDE, t);
                 if (e->call.nargs > 0)
                         expect(p, TOK_COMMA,
                                 "Expected ',' between args");
@@ -212,7 +227,7 @@ static Expr *new_fn_expr(Parser *p, Token t)
         advance(p);
         e->call.args = head.next;
         e->type = ty_int;
-        debug(OUT);
+        debug_Token(OUT, t);
 
         return e;
 }
@@ -220,11 +235,20 @@ static Expr *new_fn_expr(Parser *p, Token t)
 static Type *parse_type(Parser *p)
 {
         debug_Parser(IN, p);
-        expect(p, TOK_KW_INT, "Expected 'int'");
-        Type *ty = ty_int;
-        while (check(p, TOK_STAR)) {
-                debug_Parser(INSIDE, p);
+        Type *ty;
+
+        if (check(p, TOK_KW_CHAR)) {
                 advance(p);
+                debug_Parser(INSIDE, p);
+                ty = ty_char;
+        } else {
+                expect(p, TOK_KW_INT, "Expected a type");
+                ty = ty_int;
+        }
+
+        while (check(p, TOK_STAR)) {
+                advance(p);
+                debug_Parser(INSIDE, p);
                 ty = pointer_to(ty);
         }
         debug_Parser(OUT, p);
@@ -234,23 +258,24 @@ static Type *parse_type(Parser *p)
 static Expr *parse_primary(Parser *p)
 {
         debug_Parser(IN, p);
+
         if (check(p, TOK_NUMBER)) {
-                debug_Parser(INSIDE, p);
                 Token t = advance(p);
+                debug_Parser(INSIDE, p);
                 return new_number(token_to_long(t));
         }
 
         if (check(p, TOK_LPAREN)) {
-                debug_Parser(INSIDE, p);
                 advance(p);
+                debug_Parser(INSIDE, p);
                 Expr *e = parse_expr(p);
                 expect(p, TOK_RPAREN, "Expected ')'");
                 return e;
         }
 
         if (check(p, TOK_IDENTIFIER)) {
-                debug_Parser(INSIDE, p);
                 Token t = advance(p);
+                debug_Parser(INSIDE, p);
                 if (check(p, TOK_LPAREN)) return new_fn_expr(p, t);
                 Var *v = find_var(p->locals, t);
                 if (!v) error_at(t, "Undeclared variable: '%.*s'",
@@ -270,13 +295,27 @@ static Expr *parse_primary(Parser *p)
                 return e;
         }
 
-        if (check(p, TOK_STRING_LITERAL)) {
-                debug_Parser(INSIDE, p);
+        if (check(p, TOK_CHAR_LITERAL)) {
                 Token t = advance(p);
+                char c = t.start[1]; /* 'a': char after the quote */
+                if (c == '\\') {
+                        switch (t.start[2]) {
+                        case 'n': c = '\n'; break;
+                        case 't': c = '\t'; break;
+                        case '0': c = '\0'; break;
+                        default:  c = t.start[2]; break;
+                        }
+                }
+                return new_number(c);
+        }
+
+        if (check(p, TOK_STRING_LITERAL)) {
+                Token t = advance(p);
+                debug_Parser(INSIDE, p);
                 Expr *e = new_expr(EXPR_STR);
                 e->str.text = t.start;
                 e->str.length = t.length;
-                e->type = pointer_to(ty_int);
+                e->type = pointer_to(ty_char);
                 return e;
         }
 
@@ -286,13 +325,13 @@ static Expr *parse_primary(Parser *p)
 
 static Expr *new_deref(Token op, Expr *operand)
 {
-        debug(IN);
+        debug_Token(IN, op);
         if (!is_ptr(operand->type))
                 error_at(op, "Cannot dereference a non-pointer");
         Expr *e = new_expr(EXPR_DEREF);
         e->unary.operand = operand;
         e->type = operand->type->base;
-        debug(OUT);
+        debug_Token(OUT, op);
         return e;
 }
 
@@ -365,6 +404,7 @@ static Expr *parse_mul(Parser *p)
 
 static Expr *new_add(Token op, Expr *left, Expr *right)
 {
+        debug_Token(IN, op);
         if (is_ptr(right->type)) { /* 1 + p is the same as p+1 */
                 Expr *tmp = left;
                 left = right;
@@ -380,6 +420,7 @@ static Expr *new_add(Token op, Expr *left, Expr *right)
                                   new_number(size_of(left->type->base)));
         Expr *e = new_binary(TOK_PLUS, left, scaled);
         e->type = left->type;
+        debug_Token(OUT, op);
         return e;
 }
 
@@ -573,22 +614,21 @@ static Stmt *parse_if(Parser *p)
         expect(p, TOK_RPAREN, "Expected ')' after condition");
         s->if_stmt.then = parse_stmt(p);
         if (check(p, TOK_KW_ELSE)) {
-                debug_Parser(INSIDE, p);
                 advance(p);
+                debug_Parser(INSIDE, p);
                 s->if_stmt.els = parse_stmt(p);
         }
         debug_Parser(OUT, p);
         return s;
 }
 
-static Stmt *parse_int(Parser *p)
+static Stmt *parse_declaration(Parser *p)
 {
         debug_Parser(IN, p);
         Type *ty = parse_type(p);
         Token name = p->current;
         expect(p, TOK_IDENTIFIER, "Expected variable name after 'int'");
         if (check(p, TOK_LSQUARE)) {
-                debug_Parser(INSIDE, p);
                 advance(p);
                 debug_Parser(INSIDE, p);
                 Token len = p->current;
@@ -630,7 +670,8 @@ static Stmt *parse_stmt(Parser *p)
                 case TOK_KW_FOR:    return parse_for(p);
                 case TOK_KW_WHILE:  return parse_while(p);
                 case TOK_KW_IF:     return parse_if(p);
-                case TOK_KW_INT:    return parse_int(p);
+                case TOK_KW_CHAR:
+                case TOK_KW_INT:    return parse_declaration(p);
                 case TOK_KW_RETURN: return parse_return(p);
                 case TOK_KW_BREAK:  return parse_break(p);
                 case TOK_LCURLY:    return parse_block(p);
