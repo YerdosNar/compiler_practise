@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-red="\033[31m"
-grn="\033[32m"
-yel="\033[33m"
-blu="\033[34m"
-rst="\033[0m"
+readonly red="\033[31m"
+readonly grn="\033[32m"
+readonly yel="\033[33m"
+readonly blu="\033[34m"
+readonly rst="\033[0m"
 
 pass=0
 fail=0
@@ -248,6 +248,22 @@ echo -e "\n${yel}Testing error cases${rst}"
 assert_error 'int main() { int a[3]; int b[3]; a = b; return 0; }'
 assert_error 'int main() { int a[3]; return a[1; }'
 assert_error 'int main() { int x; return x[0]; }'
+
+echo -e "\n${blu}Testing char${rst}"
+assert 3  'int main() { char c; c = 3; return c; }'
+assert 7  'int main() { char a[3]; a[2] = 4; a[1] = 2; a[0] = 1; return a[0] + a[1] + a[2]; }'
+assert 1  'int main() { char a; char b; return &a - &b; }'
+assert 98 'int main() { return "abc"[1]; }'
+assert 10 "int main() { return '\n'; }"
+assert 39 "int main() { return '\''; }"
+assert 5  'int len(char *s) { int n; n = 0; while (s[n]) n = n + 1; return n; } int main() { return len("hello"); }'
+assert 7  'int add(char a, char b) { return a + b; } int main() { return add(3, 4); }'
+assert 1  'int main() { char c; c = -1; return c == -1; }'
+assert 9  'int main() { char c; int x; c = 1; x = 9; return x; }'
+assert_output 'Hi'  "int main() { putchar('H'); putchar('i'); return 0; }"
+assert_output 'abc' 'int main() { char s[4]; s[0] = 97; s[1] = 98; s[2] = 99; s[3] = 0; puts(s); return 0; }'
+
+echo -e "\n${yel}Testing error cases${rst}"
 
 echo ""
 rm tmp
